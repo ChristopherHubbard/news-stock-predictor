@@ -1,5 +1,7 @@
 # Imports
 import torch
+from Constants import sliceSize
+
 
 # No need to import numpy since pytorch uses tensors instead of direct np arrays
 
@@ -24,7 +26,7 @@ class EventEmbedding(torch.nn.Module):
         self.d = 100
 
         # Set the slice size of the tensor -- what should this be set to??
-        self.k = 100
+        self.k = sliceSize
 
         # Define the sequence of layers for the whole network -----------------------------------------------------------------
 
@@ -42,19 +44,19 @@ class EventEmbedding(torch.nn.Module):
         self.activation = torch.nn.Tanh()
 
     # Result of a forward pass -- This should return the event embeddings
-    def forward(self, embeddings):
+    def forward(self, wordEmbeddings):
         # Extract the actor, action, and object
-        o1, p, o2 = embeddings
+        o1, p, o2 = wordEmbeddings
 
         # Transpose o1 and o2 for first bilinear transform
         o1_T = torch.transpose(o1, 0, 1)
         o2_T = torch.transpose(o2, 0, 1)
 
         stacked_o1_P = torch.cat((o1, p), -1)
-        stacked_o2_P = torch.cat((o2, p), -1)
+        stacked_o2_P = torch.cat((p, o2), -1)
 
         r1 = torch.add(self.bilinear1(o1_T, p), 1, self.linear1(stacked_o1_P))
-        r2 = torch.add(self.bilinear2(o2_T, p), 1, self.linear2(stacked_o2_P))
+        r2 = torch.add(self.bilinear2(p, o2_T), 1, self.linear2(stacked_o2_P))
 
         # Final run with r1 and r2 -- transpose
         r1_T = torch.transpose(r1, 0, 1)
