@@ -1,7 +1,6 @@
 # Imports
 import torch
-from Constants import sliceSize
-
+from Constants import WORD_EMBEDDING_LENGTH, SLICE_SIZE
 
 # No need to import numpy since pytorch uses tensors instead of direct np arrays
 
@@ -12,21 +11,21 @@ from Constants import sliceSize
 class EventEmbedding(torch.nn.Module):
 
     # Initialize the Neural Tensor Layer -- takes in the size of each input to the network
-    def __init__(self, actor_size, action_size, object_size):
+    def __init__(self, embeddingLength):
 
         # Call the base constructor
         super(EventEmbedding, self).__init__()
 
         # Set the input sizes
-        self.actor_size = actor_size
-        self.action_size = action_size
-        self.object_size = object_size
+        self.actor_size = embeddingLength
+        self.action_size = embeddingLength
+        self.object_size = embeddingLength
 
         # Set the x and y dimensions of the tensors -- both are d
-        self.d = 100
+        self.d = WORD_EMBEDDING_LENGTH
 
         # Set the slice size of the tensor -- what should this be set to??
-        self.k = sliceSize
+        self.k = SLICE_SIZE
 
         # Define the sequence of layers for the whole network -----------------------------------------------------------------
 
@@ -44,28 +43,38 @@ class EventEmbedding(torch.nn.Module):
         self.activation = torch.nn.Tanh()
 
     # Result of a forward pass -- This should return the event embeddings
-    def forward(self, wordEmbeddings):
+    def forward(self, event):
         # Extract the actor, action, and object
-        o1, p, o2 = wordEmbeddings
+        o1, p, o2 = event
 
         # Transpose o1 and o2 for first bilinear transform
-        o1_T = torch.transpose(o1, 0, 1)
-        o2_T = torch.transpose(o2, 0, 1)
+        o1_T = torch.transpose(o1, 1, 2)
+        o2_T = torch.transpose(o2, 1, 2)
 
         stacked_o1_P = torch.cat((o1, p), -1)
         stacked_o2_P = torch.cat((p, o2), -1)
 
-        r1 = torch.add(self.bilinear1(o1_T, p), 1, self.linear1(stacked_o1_P))
-        r2 = torch.add(self.bilinear2(p, o2_T), 1, self.linear2(stacked_o2_P))
+        r1 = self.biLinear1(o1, p) + self.linear1(stacked_o1_P)
+        r2 = self.biLinear2(p, o2) + self.linear2(stacked_o2_P)
 
         # Final run with r1 and r2 -- transpose
-        r1_T = torch.transpose(r1, 0, 1)
-        r2_T = torch.transpose(r2, 0, 1)
+        r1_T = torch.transpose(r1, 1, 2)
+        r2_T = torch.transpose(r2, 1, 2)
 
         # How to insure that these concats yield the appropriate results?
-        stacked_r1_r2 = torch.cat((r1, r2_T), -1)
+        stacked_r1_r2 = torch.cat((r1, r2), -1)
 
-        u = torch.add(self.bilinear3(r1_T, r2_T), 1, self.linear3(stacked_r1_r2))
+        u = self.biLinear3(r1, r2) + self.linear3(stacked_r1_r2)
 
         # Run the activation function with the result
         return self.activation(u)
+
+# Testing for the Event embedding NTN -- Numbers are weird on initial test but training will probably produce correct result
+if __name__ == '__main__':
+
+    o1 = torch.randn(1, 1, WORD_EMBEDDING_LENGTH)
+    p = torch.randn(1, 1, WORD_EMBEDDING_LENGTH)
+    o2 = torch.randn(1, 1, WORD_EMBEDDING_LENGTH)
+    wordEmbeddings = o1, p, o2
+    event = EventEmbedding(WORD_EMBEDDING_LENGTH)
+    print(event(wordEmbeddings))
