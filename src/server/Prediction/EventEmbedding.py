@@ -69,6 +69,12 @@ class EventEmbedding(torch.nn.Module):
         # Run the activation function with the result
         return self.activation(u)
 
+    # Method to train the event embedding network -- calculate loss and use standard backpropagation
+    def trainNetwork(self):
+
+        # Return the network after training
+        return self
+
 # Testing for the Event embedding NTN -- Numbers are weird on initial test but training will probably produce correct result
 if __name__ == '__main__':
 

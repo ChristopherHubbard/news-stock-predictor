@@ -111,6 +111,13 @@ class DeepPredictionNetwork(torch.nn.Module):
         # Now run the output model
         return self.outputModel(featureVector)
 
+    # Method to train this network -- Calculate loss and update using standard backpropagation
+    def trainNetwork(self):
+
+        # Return the trained network
+        return self
+
+
 
 # Main for temporary testing
 if __name__ == '__main__':
