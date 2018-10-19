@@ -2,6 +2,7 @@ import torch
 
 from Constants import WORD_EMBEDDING_LENGTH
 from InformationExtraction import InformationExtraction
+from ConfigManager import ConfigManager
 
 # Top level model for the entire network -- composed of pretrained word, event, and prediction networks
 class Model(torch.nn.Module):
@@ -36,21 +37,28 @@ class Model(torch.nn.Module):
         eventEmbeddings = torch.empty(0, 0, 0)
 
         # Create extraction object
-        extractor = InformationExtraction()
+        try:
+            extractor = InformationExtraction(ConfigManager('LOCAL'))
+        except Exception as ex:
+            print('An exception occurred. Moving to the next headline.')
+            return None # Should this return empty tensor instead?
 
         # Go through all the headlines and create event embeddings
         for headline in headlines:
-            # Turn the words into structured event tuple
-            structuredEvent = extractor.createStructuredTuple(headline)
+            # Turn the words into structured event tuple -- might not be possible
+            try:
+                structuredEvent = extractor.createStructuredTuple(headline)
 
-            # Turn the event tuple into word embeddings -- outputs the (o1, p, o2) tuple of word embeddings
-            wordEmbeddings = (self._createWordEmbeddingsForSentence(structuredEvent[0]),
-                              self._createWordEmbeddingsForSentence(structuredEvent[1]),
-                              self._createWordEmbeddingsForSentence(structuredEvent[2]))
+                # Turn the event tuple into word embeddings -- outputs the (o1, p, o2) tuple of word embeddings
+                wordEmbeddings = (self._createWordEmbeddingsForSentence(structuredEvent[0]),
+                                  self._createWordEmbeddingsForSentence(structuredEvent[1]),
+                                  self._createWordEmbeddingsForSentence(structuredEvent[2]))
 
-            # Now have the word embeddings -- convert to the event
-            eventEmbedding = self.eventNetwork(wordEmbeddings)
-            eventEmbeddings = torch.cat((eventEmbeddings, eventEmbedding), 1)
+                # Now have the word embeddings -- convert to the event
+                eventEmbedding = self.eventNetwork(wordEmbeddings)
+                eventEmbeddings = torch.cat((eventEmbeddings, eventEmbedding), 1)
+            except:
+                print('The structured tuple was not able to be constructed for headline: ' + headline)
 
         return eventEmbeddings
 
@@ -77,6 +85,8 @@ class Model(torch.nn.Module):
 if __name__ == '__main__':
 
     w = lambda word: torch.randn(1, 1, WORD_EMBEDDING_LENGTH)
+    e = lambda event: torch.randn(1, 1, 100)
+    p = lambda predict: torch.randn(1, 1, 1)
 
-    m = Model(w, None, None)
-    m((["Nvidia is sues tech Microsoft"], [], []))
+    m = Model(w, e, p)
+    m((['Nvidia fourth quarter results miss views.', 'Amazon eliminates worker bonuses right before the holidays.', 'Delta profits didn\'t reach goals.', 'Chris ate green beans.'], [], []))

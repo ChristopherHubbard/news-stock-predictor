@@ -1,0 +1,5 @@
+{
+  "LOCAL": {
+    "StanfordCoreNLPServer": "http://localhost:8080/"
+  }
+}
