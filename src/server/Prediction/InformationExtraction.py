@@ -25,7 +25,7 @@ class InformationExtraction():
 
             # Retrieve the openIE result from the annotation
             result = [annotation["sentences"][0]["openie"] for item in annotation]
-            openIE = result[0][0]
+            openIE = result[0][0] # Retrieve the first relation
 
             # Construct the tuple
             return (openIE['subject'], openIE['relation'], openIE['object'])

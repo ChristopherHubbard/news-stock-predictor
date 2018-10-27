@@ -1,10 +1,13 @@
 import torch
 
-from Constants import WORD_EMBEDDING_LENGTH
+# Imports from user files
 from InformationExtraction import InformationExtraction
 from ConfigManager import ConfigManager
+from Constants import WORD_EMBEDDING_LENGTH
+from WordEmbedding import WordEmbedding
 
-# Top level model for the entire network -- composed of pretrained word, event, and prediction networks
+
+# Top level model that runs the entire network
 class Model(torch.nn.Module):
 
     def __init__(self, wordNetwork, eventNetwork, predictionNetwork):
@@ -57,7 +60,8 @@ class Model(torch.nn.Module):
                 # Now have the word embeddings -- convert to the event
                 eventEmbedding = self.eventNetwork(wordEmbeddings)
                 eventEmbeddings = torch.cat((eventEmbeddings, eventEmbedding), 1)
-            except:
+            except Exception as ex:
+                print(ex)
                 print('The structured tuple was not able to be constructed for headline: ' + headline)
 
         return eventEmbeddings
@@ -69,7 +73,7 @@ class Model(torch.nn.Module):
         words = sentence.split()
 
         # Create a word embedding for each word -- add to larger tensor
-        embeddingList = torch.empty(0, 0, 0)
+        embeddingList = torch.empty(0, 0, 0, dtype=torch.double)
 
         for word in words:
             # Create a word embedding
@@ -84,9 +88,12 @@ class Model(torch.nn.Module):
 # Main to sanity test this model
 if __name__ == '__main__':
 
-    w = lambda word: torch.randn(1, 1, WORD_EMBEDDING_LENGTH)
+    w = WordEmbedding(configManager=ConfigManager('LOCAL'), fromDatabase=False)
     e = lambda event: torch.randn(1, 1, 100)
     p = lambda predict: torch.randn(1, 1, 1)
 
     m = Model(w, e, p)
-    m((['Nvidia fourth quarter results miss views.', 'Amazon eliminates worker bonuses right before the holidays.', 'Delta profits didn\'t reach goals.', 'Chris ate green beans.'], [], []))
+    m((['Nvidia fourth quarter results miss views',
+        'Amazon eliminates worker bonuses right before the holidays',
+        'Delta profits didn\'t reach goals',
+        'Chris ate green beans'], [], []))

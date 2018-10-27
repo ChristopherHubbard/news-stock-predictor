@@ -2,7 +2,7 @@ import torch
 from math import floor
 
 # Import global constants
-from Constants import SLICE_SIZE, LT_DAYS, MT_DAYS
+from Constants import SLICE_SIZE, LT_DAYS, MT_DAYS, ITERATION_NUM
 
 # Import custom layers
 from PrintLayer import PrintLayer
@@ -91,7 +91,8 @@ class DeepPredictionNetwork(torch.nn.Module):
             # Apply a linear layer for the weights before the output layer -- Only one output on the output layer
             torch.nn.Linear(in_features=hiddenLayer, out_features=1, bias=False),
             # Apply the final sigmoid function
-            torch.nn.Sigmoid()
+            torch.nn.Sigmoid(),
+            PrintLayer()
         )
 
     # Forward pass of the deep prediction network -- should produce whether stock price increases or decreases
@@ -114,7 +115,27 @@ class DeepPredictionNetwork(torch.nn.Module):
     # Method to train this network -- Calculate loss and update using standard backpropagation
     def trainNetwork(self):
 
-        # Return the trained network
+        # Create the loss function and optimizer
+        loss_fn = torch.nn.L1Loss()
+        optimizer = torch.optim.Adam(params=self.parameters(), lr=1e-4, weight_decay=1e-4)  # Set up the optimizer using defaults on Adam (recommended for deep nets)
+
+        # Go through the data samples
+        for input, target in [(1, 2)]:
+            # Forward pass
+            output = self.forward(input)
+
+            # Compute the loss -- Print the loss to console
+            loss = loss_fn(output, target)
+            print(input, loss.item())
+
+            # Backward pass -- Zero the gradient to avoid accumulation during backward pass
+            optimizer.zero_grad()
+            loss.backward()
+
+            # Update the parameters of the optimization function
+            optimizer.step()
+
+        # Return the network after training
         return self
 
 
@@ -123,6 +144,8 @@ class DeepPredictionNetwork(torch.nn.Module):
 if __name__ == '__main__':
 
     net = DeepPredictionNetwork()
+
+    net.trainNetwork()
 
     for x in range(100):
         lt = torch.randn(1, 30, SLICE_SIZE) # These are all correct for the setup -- but maxpooling or conv1d layers causing 1, 256, 239 output shape

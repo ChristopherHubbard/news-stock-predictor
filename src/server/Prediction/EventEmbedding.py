@@ -1,6 +1,6 @@
 # Imports
 import torch
-from Constants import WORD_EMBEDDING_LENGTH, SLICE_SIZE
+from Constants import WORD_EMBEDDING_LENGTH, SLICE_SIZE, ITERATION_NUM
 
 # No need to import numpy since pytorch uses tensors instead of direct np arrays
 
@@ -42,14 +42,14 @@ class EventEmbedding(torch.nn.Module):
         # Activation function for the result
         self.activation = torch.nn.Tanh()
 
+        # Load the training inputs
+
+
+
     # Result of a forward pass -- This should return the event embeddings
     def forward(self, event):
         # Extract the actor, action, and object
         o1, p, o2 = event
-
-        # Transpose o1 and o2 for first bilinear transform
-        o1_T = torch.transpose(o1, 1, 2)
-        o2_T = torch.transpose(o2, 1, 2)
 
         stacked_o1_P = torch.cat((o1, p), -1)
         stacked_o2_P = torch.cat((p, o2), -1)
@@ -57,9 +57,6 @@ class EventEmbedding(torch.nn.Module):
         r1 = self.biLinear1(o1, p) + self.linear1(stacked_o1_P)
         r2 = self.biLinear2(p, o2) + self.linear2(stacked_o2_P)
 
-        # Final run with r1 and r2 -- transpose
-        r1_T = torch.transpose(r1, 1, 2)
-        r2_T = torch.transpose(r2, 1, 2)
 
         # How to insure that these concats yield the appropriate results?
         stacked_r1_r2 = torch.cat((r1, r2), -1)
@@ -71,6 +68,28 @@ class EventEmbedding(torch.nn.Module):
 
     # Method to train the event embedding network -- calculate loss and use standard backpropagation
     def trainNetwork(self):
+
+        # Create the loss function and optimizer
+        loss_fn = torch.nn.MarginRankingLoss(margin=1)
+        optimizer = torch.optim.Adam(params=self.parameters(), lr=1e-4, weight_decay=1e-4) # Set up the optimizer using defaults on Adam (recommended for deep nets)
+
+        # Go through the data samples
+        for input, corruptInput in self.trainingSet:
+
+            # Forward pass on the input
+            output = self.forward(input)
+            corruptedOutput = self.forward(corruptInput)
+
+            # Compute the loss -- Print the loss to console
+            loss = loss_fn(output, corruptedOutput, torch.ones(self.k))
+            print(input, loss.item())
+
+            # Backward pass -- Zero the gradient to avoid accumulation during backward pass
+            optimizer.zero_grad()
+            loss.backward()
+
+            # Update the parameters of the optimization function
+            optimizer.step()
 
         # Return the network after training
         return self

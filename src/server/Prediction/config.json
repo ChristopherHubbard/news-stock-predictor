@@ -1,5 +1,15 @@
 {
   "LOCAL": {
-    "StanfordCoreNLPServer": "http://localhost:8080/"
+    "StanfordCoreNLPServer": "http://localhost:8080/",
+    "GloVePath": "../glove.6B/"
+  },
+  "DEV": {
+
+  },
+  "TEST": {
+
+  },
+  "PROD": {
+
   }
 }

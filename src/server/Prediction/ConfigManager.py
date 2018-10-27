@@ -1,4 +1,5 @@
 import json
+import torch
 
 class ConfigManager():
 
@@ -11,3 +12,9 @@ class ConfigManager():
 
         # Set the config based on the env
         self.config = envs[env]
+
+        # Set the device based on this computer -- If CUDA GPU is available use that
+        if torch.cuda.is_available():
+            self.device = 'cuda'
+        else:
+            self.device = 'cpu'
