@@ -1,1 +1,3 @@
 PAGES_PER_RUN = 100
+
+JSON_DATA_FILE_NAME = '.data.json'

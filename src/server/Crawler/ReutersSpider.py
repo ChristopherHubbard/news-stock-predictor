@@ -1,7 +1,9 @@
 import scrapy
 from twisted.internet import reactor
 from scrapy.utils.log import configure_logging
+from scrapy.utils.project import get_project_settings
 from scrapy.crawler import CrawlerRunner
+from datetime import datetime
 
 from SpiderConstants import PAGES_PER_RUN
 
@@ -9,7 +11,7 @@ from SpiderConstants import PAGES_PER_RUN
 class ReutersSpider(scrapy.Spider):
 
     # Name of this spider
-    name = 'Reuters'
+    name = 'reuters'
 
     # Where the scraping requests begin
     def start_requests(self):
@@ -21,14 +23,33 @@ class ReutersSpider(scrapy.Spider):
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
-    # Parse the reuters page
+    # Parse the reuters page to retrieve the headlines
     def parse(self, response):
-        pass
+
+        # Extract the story titles and strp the headline -- Can make a more complex routine to extract for single news source?
+        for story in response.css('div.story-content'):
+
+            # Strip the headline text and get the date
+            headline = story.css('h3.story-title::text').extract_first().strip()
+            dt = story.css('span.timestamp::text').extract_first().strip()
+
+            # Try to create the date from the passed in time
+            try:
+                date = datetime.strptime(dt, '%b %d %Y').date()
+            except:
+                date = datetime.now().date()
+
+            # Return the parsed headline and time
+            yield {
+                'headline': headline,
+                'date': date
+            }
 
 if __name__ == '__main__':
     # Scrapy needs to run inside twisted reactor -- Start the process
     configure_logging({'LOG_FORMAT': '%(levelname)s: %(message)s'})
-    runner = CrawlerRunner()
+    settings = get_project_settings()
+    runner = CrawlerRunner(settings=settings)
 
     d = runner.crawl(ReutersSpider)
     d.addBoth(lambda _: reactor.stop()) # Callback to stop the reactor
