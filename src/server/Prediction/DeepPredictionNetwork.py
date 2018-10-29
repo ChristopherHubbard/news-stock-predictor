@@ -25,10 +25,14 @@ class DeepPredictionNetwork(torch.nn.Module):
     # Kernel size for convolution layer
     CONV_KERNEL_SIZE = 3
 
-    def __init__(self):
+    def __init__(self, trainingData):
 
         # Call the base constructor
         super(DeepPredictionNetwork, self).__init__()
+
+        # Initialize the training data
+        self.trainingData = trainingData
+        self.trained = False
 
         # Size of the input to the feed-forward NN layers
         inputLayer = floor(3 * SLICE_SIZE)
@@ -120,7 +124,7 @@ class DeepPredictionNetwork(torch.nn.Module):
         optimizer = torch.optim.Adam(params=self.parameters(), lr=1e-4, weight_decay=1e-4)  # Set up the optimizer using defaults on Adam (recommended for deep nets)
 
         # Go through the data samples
-        for input, target in [(1, 2)]:
+        for input, target in self.trainingData:
             # Forward pass
             output = self.forward(input)
 
@@ -135,6 +139,7 @@ class DeepPredictionNetwork(torch.nn.Module):
             # Update the parameters of the optimization function
             optimizer.step()
 
+        self.trained = True
         # Return the network after training
         return self
 

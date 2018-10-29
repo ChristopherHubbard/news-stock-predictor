@@ -15,7 +15,8 @@ class JSONPipeline():
 
         # Insert into the JSON file
         obj = json.dumps({
-            'Headlines': self.headlines
+            'Count': len(self.headlines),
+            'Headlines': sorted(self.headlines, key=lambda x: x['date'])
         }, indent=4, sort_keys=True, default=str)
         self.file.write(obj)
 

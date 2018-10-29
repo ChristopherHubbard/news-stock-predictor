@@ -1,3 +1,6 @@
+import random
+import os
+import subprocess
 from pycorenlp import StanfordCoreNLP
 from ConfigManager import ConfigManager
 
@@ -10,7 +13,6 @@ class InformationExtraction():
             self.nlp = StanfordCoreNLP(configManager.config['StanfordCoreNLPServer'])
         except:
             raise ConnectionError('There was an error connecting to the OpenIE engine. Make sure the server is running on the correct port')
-
 
     def createStructuredTuple(self, text):
 
@@ -29,8 +31,23 @@ class InformationExtraction():
 
             # Construct the tuple
             return (openIE['subject'], openIE['relation'], openIE['object'])
-        except:
+        except Exception as ex:
+            print(ex)
             raise ValueError('There was an error creating the tuple.')
+
+    # Method to create a corrupt tuple
+    def createCorruptStructuredTuple(self, structuredTuple, vocabDict):
+
+        # Take the structured tuple and replace every word in the subject
+        corruptTuple = ([], structuredTuple[1], structuredTuple[2])
+        vocab = list(vocabDict.keys())
+        for word in structuredTuple[0]:
+
+            # Choose a random word in the vocab and append it to the tuple subject
+            corruptTuple[0].append(random.choice(vocab))
+
+        # Return the corrupt tuple
+        return corruptTuple
 
 # Main routine to test the extraction functionality
 if __name__ == '__main__':

@@ -12,6 +12,8 @@ class WordEmbedding(torch.nn.Module):
         # Call the base constructor
         super(WordEmbedding, self).__init__()
 
+        self.trained = True
+
         # Set up the network that converts strings to word embeddings -- Create the vocab if needed
         # Load the word embeddings from the database
         if fromDatabase:
@@ -45,6 +47,7 @@ class WordEmbedding(torch.nn.Module):
     # This network is pretrained -- only have this to maintain the nn interface
     def trainNetwork(self):
 
+        self.trained = True
         # Return self (even though no training)
         return self
 

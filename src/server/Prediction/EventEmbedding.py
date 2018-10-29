@@ -11,10 +11,14 @@ from Constants import WORD_EMBEDDING_LENGTH, SLICE_SIZE, ITERATION_NUM
 class EventEmbedding(torch.nn.Module):
 
     # Initialize the Neural Tensor Layer -- takes in the size of each input to the network
-    def __init__(self, embeddingLength):
+    def __init__(self, embeddingLength, trainingData):
 
         # Call the base constructor
         super(EventEmbedding, self).__init__()
+
+        # Set the training data
+        self.trainingData = trainingData
+        self.trained = False
 
         # Set the input sizes
         self.actor_size = embeddingLength
@@ -91,6 +95,7 @@ class EventEmbedding(torch.nn.Module):
             # Update the parameters of the optimization function
             optimizer.step()
 
+        self.trained = True
         # Return the network after training
         return self
 

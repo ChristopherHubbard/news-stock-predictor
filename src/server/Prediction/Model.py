@@ -6,7 +6,6 @@ from ConfigManager import ConfigManager
 from Constants import WORD_EMBEDDING_LENGTH
 from WordEmbedding import WordEmbedding
 
-
 # Top level model that runs the entire network
 class Model(torch.nn.Module):
 
@@ -84,6 +83,12 @@ class Model(torch.nn.Module):
 
         # Average the embedding set in the 1st dimension -- reshape to have 3-d tensor
         return embeddingList.mean(1).view(1, 1, WORD_EMBEDDING_LENGTH)
+
+    # Method to train the network end to end
+    def trainNetwork(self):
+
+        #
+
 
 # Main to sanity test this model
 if __name__ == '__main__':
