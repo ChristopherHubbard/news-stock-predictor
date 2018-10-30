@@ -11,13 +11,12 @@ from Constants import WORD_EMBEDDING_LENGTH, SLICE_SIZE, ITERATION_NUM
 class EventEmbedding(torch.nn.Module):
 
     # Initialize the Neural Tensor Layer -- takes in the size of each input to the network
-    def __init__(self, embeddingLength, trainingData):
+    def __init__(self, embeddingLength):
 
         # Call the base constructor
         super(EventEmbedding, self).__init__()
 
         # Set the training data
-        self.trainingData = trainingData
         self.trained = False
 
         # Set the input sizes
@@ -46,10 +45,6 @@ class EventEmbedding(torch.nn.Module):
         # Activation function for the result
         self.activation = torch.nn.Tanh()
 
-        # Load the training inputs
-
-
-
     # Result of a forward pass -- This should return the event embeddings
     def forward(self, event):
         # Extract the actor, action, and object
@@ -61,7 +56,6 @@ class EventEmbedding(torch.nn.Module):
         r1 = self.biLinear1(o1, p) + self.linear1(stacked_o1_P)
         r2 = self.biLinear2(p, o2) + self.linear2(stacked_o2_P)
 
-
         # How to insure that these concats yield the appropriate results?
         stacked_r1_r2 = torch.cat((r1, r2), -1)
 
@@ -71,14 +65,14 @@ class EventEmbedding(torch.nn.Module):
         return self.activation(u)
 
     # Method to train the event embedding network -- calculate loss and use standard backpropagation
-    def trainNetwork(self):
+    def trainNetwork(self, trainingData):
 
         # Create the loss function and optimizer
         loss_fn = torch.nn.MarginRankingLoss(margin=1)
         optimizer = torch.optim.Adam(params=self.parameters(), lr=1e-4, weight_decay=1e-4) # Set up the optimizer using defaults on Adam (recommended for deep nets)
 
         # Go through the data samples
-        for input, corruptInput in self.trainingSet:
+        for input, corruptInput in trainingData:
 
             # Forward pass on the input
             output = self.forward(input)

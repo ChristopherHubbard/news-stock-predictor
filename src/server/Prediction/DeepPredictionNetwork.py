@@ -25,13 +25,12 @@ class DeepPredictionNetwork(torch.nn.Module):
     # Kernel size for convolution layer
     CONV_KERNEL_SIZE = 3
 
-    def __init__(self, trainingData):
+    def __init__(self):
 
         # Call the base constructor
         super(DeepPredictionNetwork, self).__init__()
 
         # Initialize the training data
-        self.trainingData = trainingData
         self.trained = False
 
         # Size of the input to the feed-forward NN layers
@@ -117,14 +116,15 @@ class DeepPredictionNetwork(torch.nn.Module):
         return self.outputModel(featureVector)
 
     # Method to train this network -- Calculate loss and update using standard backpropagation
-    def trainNetwork(self):
+    def trainNetwork(self, trainingData):
 
         # Create the loss function and optimizer
         loss_fn = torch.nn.L1Loss()
         optimizer = torch.optim.Adam(params=self.parameters(), lr=1e-4, weight_decay=1e-4)  # Set up the optimizer using defaults on Adam (recommended for deep nets)
 
         # Go through the data samples
-        for input, target in self.trainingData:
+        target = trainingData[1] # Initialize the training data value (stores randomly initialized tensor
+        for input in trainingData[0]:
             # Forward pass
             output = self.forward(input)
 
@@ -142,8 +142,6 @@ class DeepPredictionNetwork(torch.nn.Module):
         self.trained = True
         # Return the network after training
         return self
-
-
 
 # Main for temporary testing
 if __name__ == '__main__':

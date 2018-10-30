@@ -39,12 +39,14 @@ class InformationExtraction():
     def createCorruptStructuredTuple(self, structuredTuple, vocabDict):
 
         # Take the structured tuple and replace every word in the subject
-        corruptTuple = ([], structuredTuple[1], structuredTuple[2])
+        sentence = []
         vocab = list(vocabDict.keys())
-        for word in structuredTuple[0]:
+        for word in structuredTuple[0].split():
 
             # Choose a random word in the vocab and append it to the tuple subject
-            corruptTuple[0].append(random.choice(vocab))
+            sentence.append(random.choice(vocab))
+
+        corruptTuple = (' '.join(sentence), structuredTuple[1], structuredTuple[2])
 
         # Return the corrupt tuple
         return corruptTuple
