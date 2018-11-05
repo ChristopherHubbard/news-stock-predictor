@@ -1,17 +1,20 @@
 import torch
 import pickle
 import os
+from datetime import date, timedelta, datetime
 
 # Imports from user files
 from InformationExtraction import InformationExtraction
 from ConfigManager import ConfigManager
-from Constants import WORD_EMBEDDING_LENGTH
+from Constants import WORD_EMBEDDING_LENGTH, SLICE_SIZE, MT_DAYS, MODEL_FILE_PATH
 from WordEmbedding import WordEmbedding
+from EventEmbedding import EventEmbedding
+from DeepPredictionNetwork import DeepPredictionNetwork
 
 # Top level model that runs the entire network
 class Model(torch.nn.Module):
 
-    def __init__(self, wordNetwork, eventNetwork, predictionNetwork, configManager):
+    def __init__(self, configManager):
 
         # Call base
         super(Model, self).__init__()
@@ -20,9 +23,9 @@ class Model(torch.nn.Module):
         self.trained = False
 
         # Add the two networks
-        self.wordNetwork = wordNetwork
-        self.eventNetwork = eventNetwork
-        self.predictionNetwork = predictionNetwork
+        self.wordNetwork = WordEmbedding(configManager)
+        self.eventNetwork = EventEmbedding(WORD_EMBEDDING_LENGTH)
+        self.predictionNetwork = DeepPredictionNetwork()
 
         # Create the information extraction utility
         try:
@@ -32,38 +35,86 @@ class Model(torch.nn.Module):
             raise Exception('Extractor failure')
 
     # This is the routine that runs the entire prediction from headline -> structured tuple (o1, p, o2) -> wordEmbeddings for (o1, p, o2) -> eventEmbeddings -> prediction result
-    def forward(self, headlines):
+    #headlines = [{ timestamp:, headline: }]
+    def forward(self, headlinesWithTime):
 
-        LTHeadlines, MTHeadlines, STHeadlines = headlines
+        # Modify to accept headlines without LT, MT, ST format, just a list of timestamped headlines
 
-        # Get the embeddings
-        LTEmbeddings = self._createEventEmbedding(LTHeadlines)
-        MTEmbeddings = self._createEventEmbedding(MTHeadlines)
-        STEmbeddings = self._createEventEmbedding(STHeadlines)
+        # Get the event embeddings [{ timestamp:, embedding: }]
+        eventEmbeddings = self._createEventEmbeddings(headlinesWithTime=headlinesWithTime)
+
+        # Now order them into LT, MT, ST
+        # Set up the time periods
+        startPeriod = min(eventEmbeddings.keys())
+        endPeriod = max(eventEmbeddings.keys())
+        ltPeriod = endPeriod - startPeriod
+        mtPeriod = ltPeriod.days + 1 - MT_DAYS
+
+        # Set up the three embedding ranges
+        LTEmbeddings = torch.empty(0, 0, 0)
+        MTEmbeddings = torch.empty(0, 0, 0)
+        for i in range(ltPeriod.days + 1):
+            LTEmbeddings = torch.cat((LTEmbeddings, eventEmbeddings[startPeriod + timedelta(i)]), 1)
+
+            # Add to MT if possible
+            if i >= mtPeriod:
+                MTEmbeddings = torch.cat((MTEmbeddings, eventEmbeddings[startPeriod + timedelta(i)]), 1)
+
+        STEmbeddings = eventEmbeddings[endPeriod]
 
         # Now have the event embeddings -- Should be able to send to the prediction network
         return self.predictionNetwork((LTEmbeddings, MTEmbeddings, STEmbeddings))
 
     # Create the event embeddings for all the headlines passed in -- runs the word embedding and event embedding networks
-    def _createEventEmbedding(self, headlines):
+    def _createEventEmbeddings(self, headlinesWithTime):
 
-        # Create empty tensor to add the embeddings
-        eventEmbeddings = torch.empty(0, 0, 0)
+        # Create empty dictionary to add the embeddings and timestamps
+        eventEmbeddings = {}
 
         # Go through all the headlines and create event embeddings
-        for headline in headlines:
+        for headlineWithTime in headlinesWithTime:
             # Turn the words into structured event tuple -- might not be possible
             try:
+
+                # Extract the headline
+                headline = headlineWithTime['headline']
+
+                # Retrieve the embeddings for this timestamp from the dictionary if it exists
+                if headlineWithTime['timestamp'] in eventEmbeddings:
+                    embeddingList = eventEmbeddings[headlineWithTime['timestamp']]
+                else:
+                    embeddingList = torch.empty(0, 0, 0)
+
                 # Create the word embedding for this sentence
                 wordEmbeddings = self._createWordEmbeddings(headline)
 
                 # Now have the word embeddings -- convert to the event
                 eventEmbedding = self.eventNetwork(wordEmbeddings)
-                eventEmbeddings = torch.cat((eventEmbeddings, eventEmbedding), 1)
+
+                # Add to the averaging tensor
+                embeddingList = torch.cat((embeddingList, eventEmbedding), 1)
+
+                # Set the list to this timestamp
+                eventEmbeddings[headlineWithTime['timestamp']] = embeddingList
             except Exception as ex:
                 print(ex)
-                print('The structured tuple was not able to be constructed for headline: ' + headline)
 
+        # Go through the items and average
+        for key, val in eventEmbeddings.items():
+            eventEmbeddings[key] = val.mean(1).view(1, 1, SLICE_SIZE)
+
+        # Now every item is averaged -- need to replace the missing entries for the 30 days with torch.zeros
+        start = min(eventEmbeddings.keys())
+        end = max(eventEmbeddings.keys())
+        timePeriod = end - start
+
+        for i in range(timePeriod.days + 1):
+
+            # Add the entry if it doesnt exist
+            if (start + timedelta(i)) not in eventEmbeddings:
+                eventEmbeddings[start + timedelta(i)] = torch.zeros(1, 1, SLICE_SIZE)
+
+        # Now have all the appropriate number of days -- should be 30? -- Return the event embeddings { timestamp: , embedding: }
         return eventEmbeddings
 
     # Takes a headline and creates word embeddings after creating a structured tuple
@@ -140,16 +191,17 @@ class Model(torch.nn.Module):
 
         # Now the event network should be trained -- pass the original training data (non corrupt) to get the input to the prediction network
         predictionTrainingData = ()
-        for wordEmbedding, _ in eventTrainingData:
+        for i in range(0, len(eventTrainingData[0]), 29):
+        #for wordEmbedding, _ in eventTrainingData:
+
+            # LT Embeddings -- 30 Embeddings concatenated into one 1, 30, Slice tensor
 
             # Set the input of the training data
             eventEmbedding = self.eventNetwork(wordEmbedding)
 
             # Set the prediction data
-            predictionTrainingData[0].append(eventEmbedding)
-
-        # Create a randomly initialized output tensor
-        predictionTrainingData[1] = torch.randn(1, 1, 1)
+            # Using random value for target in this way is unsupervised (desired or not?) -- NOT
+            predictionTrainingData.append((eventEmbeddings, torch.randn(1, 1, 1)))
 
         # Run the prediction data through the prediction network's training method
         self.predictionNetwork.trainNetwork(trainingData=predictionTrainingData)
@@ -157,16 +209,44 @@ class Model(torch.nn.Module):
         # Now the network should be completely trained
         self.trained = True
 
+        # Now save the trained network (And its subnetworks to be safe)
+        self._saveNetwork()
+
+    def _accuracy(self, predicted, expected):
+
+        # Measure the accuracy of the network
+        total = len(expected)
+        correct = (predicted == expected).sum()
+        self.accuracy = 100 * correct / total
+        print(self.accuracy)
+
+    def _saveNetwork(self):
+
+        # Save the pytorch models
+        torch.save(self.state_dict(), MODEL_FILE_PATH)
+
+    def _loadNetwork(self):
+
+        # Load the pytorch models and place in eval mode
+        self.load_state_dict(torch.load(MODEL_FILE_PATH))
+        self.eval()
+
 # Main to sanity test this model
 if __name__ == '__main__':
 
-    w = WordEmbedding(configManager=ConfigManager('LOCAL'), fromDatabase=False)
-    e = lambda event: torch.randn(1, 1, 100)
-    p = lambda predict: torch.randn(1, 1, 1)
-
-    m = Model(w, e, p, ConfigManager('LOCAL'))
-    m.trainNetwork()
-    m((['Nvidia fourth quarter results miss views',
-        'Amazon eliminates worker bonuses right before the holidays',
-        'Delta profits didn\'t reach goals',
-        'Chris ate green beans'], [], []))
+    m = Model(ConfigManager('LOCAL'))
+    m._loadNetwork()
+    print('Did it work: YES')
+    m([{
+        'timestamp': datetime.strptime('30 Oct 2018', '%d %b %Y').date(),
+        'headline': 'Nvidia sues Google'
+    }, {
+        'timestamp': datetime.strptime('29 Oct 2018', '%d %b %Y').date(),
+        'headline': 'Apple sues Google'
+    }, {
+        'timestamp': datetime.strptime('1 Oct 2018', '%d %b %Y').date(),
+        'headline': 'Google sues Apple'
+    }, {
+        'timestamp': datetime.strptime('16 Oct 2018', '%d %b %Y').date(),
+        'headline': 'Chris is the best'
+    }])

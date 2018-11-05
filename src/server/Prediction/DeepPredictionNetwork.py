@@ -123,8 +123,7 @@ class DeepPredictionNetwork(torch.nn.Module):
         optimizer = torch.optim.Adam(params=self.parameters(), lr=1e-4, weight_decay=1e-4)  # Set up the optimizer using defaults on Adam (recommended for deep nets)
 
         # Go through the data samples
-        target = trainingData[1] # Initialize the training data value (stores randomly initialized tensor
-        for input in trainingData[0]:
+        for input, target in trainingData:
             # Forward pass
             output = self.forward(input)
 

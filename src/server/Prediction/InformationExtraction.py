@@ -31,8 +31,7 @@ class InformationExtraction():
 
             # Construct the tuple
             return (openIE['subject'], openIE['relation'], openIE['object'])
-        except Exception as ex:
-            print(ex)
+        except:
             raise ValueError('There was an error creating the tuple.')
 
     # Method to create a corrupt tuple
