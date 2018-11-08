@@ -1,6 +1,7 @@
 
 ITEM_PIPELINES = {
-    'JSONPipeline.JSONPipeline': 100
+    'JSONPipeline.JSONPipeline': 100,
+    'RedisPipeline.RedisPipeline': 200
 }
 
 DOWNLOAD_DELAY = 2 # Use delay 2 -- 5 is way too long

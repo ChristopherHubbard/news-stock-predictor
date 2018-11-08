@@ -10,6 +10,7 @@ from Constants import WORD_EMBEDDING_LENGTH, SLICE_SIZE, MT_DAYS, MODEL_FILE_PAT
 from WordEmbedding import WordEmbedding
 from EventEmbedding import EventEmbedding
 from DeepPredictionNetwork import DeepPredictionNetwork
+from StockDataCollector import StockDataCollector
 
 # Top level model that runs the entire network
 class Model(torch.nn.Module):
@@ -153,7 +154,7 @@ class Model(torch.nn.Module):
         return embeddingList.mean(1).view(1, 1, WORD_EMBEDDING_LENGTH)
 
     # Method to train the network end to end
-    def trainNetwork(self):
+    def trainNetwork(self, epochs):
 
         # Load all the headlines into a list
         path = './data'
@@ -163,54 +164,81 @@ class Model(torch.nn.Module):
             data = pickle.load(file, encoding='utf-8')
             headlines += map(lambda item: item['title'], data)
 
-        # Pass all the headlines into the event network after creating corrupt headlines
-        eventTrainingData = []
-        for headline in headlines:
+        for _ in range(epochs):
 
-            try:
+            # Pass all the headlines into the event network after creating corrupt headlines
+            eventTrainingData = []
+            for headline in headlines:
 
-                # Create a structured tuple for this headline
-                wordEmbeddings = self._createWordEmbeddings(headline)
+                try:
 
-                # Create the structured tuple and then corrupt it
-                st = self.extractor.createStructuredTuple(headline)
-                corruptTuple = self.extractor.createCorruptStructuredTuple(structuredTuple=st, vocabDict=self.wordNetwork._vocabDict)
-                corruptEmbeddings = (self._createWordEmbeddingsForSentence(corruptTuple[0]),
-                                     self._createWordEmbeddingsForSentence(corruptTuple[1]),
-                                     self._createWordEmbeddingsForSentence(corruptTuple[2]))
+                    # Create a structured tuple for this headline
+                    structuredEvent = self.extractor.createStructuredTuple(headline)
 
-                # Add to the event training data
-                eventTrainingData.append((wordEmbeddings, corruptEmbeddings))
+                    # Turn the event tuple into word embeddings -- outputs the (o1, p, o2) tuple of word embeddings
+                    wordEmbeddings = (self._createWordEmbeddingsForSentence(structuredEvent[0]),
+                                      self._createWordEmbeddingsForSentence(structuredEvent[1]),
+                                      self._createWordEmbeddingsForSentence(structuredEvent[2]))
 
-            # If an exception is thrown just pass on
-            except:
-                pass
+                    # Create the structured tuple and then corrupt it
+                    corruptTuple = self.extractor.createCorruptStructuredTuple(structuredTuple=structuredEvent, vocabDict=self.wordNetwork._vocabDict)
+                    corruptEmbeddings = (self._createWordEmbeddingsForSentence(corruptTuple[0]),
+                                         self._createWordEmbeddingsForSentence(corruptTuple[1]),
+                                         self._createWordEmbeddingsForSentence(corruptTuple[2]))
 
-        # Now have the event training data -- pass it to the event networks training method
-        self.eventNetwork.trainNetwork(trainingData=eventTrainingData)
+                    # Add to the event training data
+                    eventTrainingData.append((wordEmbeddings, corruptEmbeddings))
 
-        # Now the event network should be trained -- pass the original training data (non corrupt) to get the input to the prediction network
-        predictionTrainingData = ()
-        for i in range(0, len(eventTrainingData[0]), 29):
-        #for wordEmbedding, _ in eventTrainingData:
+                # If an exception is thrown just pass on
+                except:
+                    pass
 
-            # LT Embeddings -- 30 Embeddings concatenated into one 1, 30, Slice tensor
+            # Now have the event training data -- pass it to the event networks training method
+            self.eventNetwork.trainNetwork(trainingData=eventTrainingData)
 
-            # Set the input of the training data
-            eventEmbedding = self.eventNetwork(wordEmbedding)
+            # Now the event network should be trained -- retrieve last month of data for each index
+            stockCollector = StockDataCollector()
+            stocksAndHeadlines = stockCollector.collectHeadlines()
+            predictionTrainingData = []
+            for stock in stocksAndHeadlines:
 
-            # Set the prediction data
-            # Using random value for target in this way is unsupervised (desired or not?) -- NOT
-            predictionTrainingData.append((eventEmbeddings, torch.randn(1, 1, 1)))
+                # Now have the stock and the headlines (with timestamps) -- Set the predicted as the rise/fall
 
-        # Run the prediction data through the prediction network's training method
-        self.predictionNetwork.trainNetwork(trainingData=predictionTrainingData)
+                # Get the event embeddings [{ timestamp:, embedding: }]
+                eventEmbeddings = self._createEventEmbeddings(headlinesWithTime=headlinesWithTime)
 
-        # Now the network should be completely trained
+                # Now order them into LT, MT, ST
+                # Set up the time periods
+                startPeriod = min(eventEmbeddings.keys())
+                endPeriod = max(eventEmbeddings.keys())
+                ltPeriod = endPeriod - startPeriod
+                mtPeriod = ltPeriod.days + 1 - MT_DAYS
+
+                # Set up the three embedding ranges
+                LTEmbeddings = torch.empty(0, 0, 0)
+                MTEmbeddings = torch.empty(0, 0, 0)
+                for i in range(ltPeriod.days + 1):
+                    LTEmbeddings = torch.cat((LTEmbeddings, eventEmbeddings[startPeriod + timedelta(i)]), 1)
+
+                    # Add to MT if possible
+                    if i >= mtPeriod:
+                        MTEmbeddings = torch.cat((MTEmbeddings, eventEmbeddings[startPeriod + timedelta(i)]), 1)
+
+                STEmbeddings = eventEmbeddings[endPeriod]
+
+                predictionTrainingData.append((LTEmbeddings, MTEmbeddings, STEmbeddings), stockCollector.getIndexRiseFallOnDate(index=stock, date=endPeriod))
+
+            # Run the prediction data through the prediction network's training method
+            self.predictionNetwork.trainNetwork(trainingData=predictionTrainingData)
+
+            # Set the accuracy level on this run
+            self.accuracy(predicted=[self.predictionNetwork(vals[0]) for vals in predictionTrainingData], expected=[vals[1] for vals in predictionTrainingData])
+
+            # Now save the trained network (And its subnetworks to be safe)
+            self._saveNetwork()
+
+        # Set whether the network is trained or not
         self.trained = True
-
-        # Now save the trained network (And its subnetworks to be safe)
-        self._saveNetwork()
 
     def _accuracy(self, predicted, expected):
 
@@ -235,8 +263,8 @@ class Model(torch.nn.Module):
 if __name__ == '__main__':
 
     m = Model(ConfigManager('LOCAL'))
+    m.trainNetwork(epochs=3)
     m._loadNetwork()
-    print('Did it work: YES')
     m([{
         'timestamp': datetime.strptime('30 Oct 2018', '%d %b %Y').date(),
         'headline': 'Nvidia sues Google'

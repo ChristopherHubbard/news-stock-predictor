@@ -1,7 +1,7 @@
 import json
 from bson import json_util
 
-from SpiderConstants import JSON_DATA_FILE_NAME
+from src.server.Crawler.SpiderConstants import JSON_DATA_FILE_NAME
 
 class JSONPipeline():
 
