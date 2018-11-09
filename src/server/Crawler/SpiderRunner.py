@@ -22,18 +22,24 @@ class SpiderRunner():
             'USER_AGENT': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
             'AUTOTHROTTLE_ENABLED': True,
             'HTTPCACHE_ENABLED': False,
-            'TELNETCONSOLE_PORT': None
+            'TELNETCONSOLE_PORT': None,
+            'RETRY_ENABLED': False,
+            'REDIRECT_ENABLED': False,
+            'COOKIES_ENABLED': False,
+            'REACTOR_THREADPOOL_MAXSIZE': 20
         })
+        self.crawlRunner = CrawlerRunner(self.settings)
 
     def run_crawlProcess(self, spider, index):
 
-        self.crawlRunner = CrawlerRunner(self.settings)
         return self.crawlRunner.crawl(spider, index)
 
     # Run the reactor
     def run(self):
 
         # The script will block here until the crawling is finished
+        d = self.crawlRunner.join()
+        d.addBoth(lambda _: self.stop())
         reactor.run()
 
     def callNext(self, null, spider, index):

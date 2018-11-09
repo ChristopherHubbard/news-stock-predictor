@@ -64,16 +64,27 @@ class StockDataCollector():
         companyInfo = self.getAllCompanyInfo(fromDB=False)
         spiderRunner = SpiderRunner()
 
-        headlinesByCompany = {}
-        for symbol in companyInfo:
+        for symbol in list(companyInfo.keys())[1001:1250]:
 
             # Web crawl for headlines with this index or company name
             self._collectHeadlinesForIndex(index=symbol, spiderRunner=spiderRunner)
 
         spiderRunner.run()
-        # Need to setup callback to shut off the spiderRunner
 
         # Go through and get the headlines by the company
+        return self.getHeadlinesFromRedis()
+
+    def getHeadlinesFromRedis(self):
+
+        headlinesByCompany = {}
+        companyInfo = self.getAllCompanyInfo(fromDB=False)
+        for symbol in companyInfo:
+            # Might have to add try-catch on the pickle loading
+            try:
+                headlinesByCompany[symbol] = pickle.loads(Redis().get(symbol))
+            except:
+                break
+
         return headlinesByCompany
 
     def getIndexInformationOnDate(self, index, date):
@@ -101,7 +112,6 @@ class StockDataCollector():
 if __name__ == '__main__':
     sdc = StockDataCollector()
     sdc.getIndexRiseFallOnDate(index='MSFT', date='5 Nov 2018')
-    print(len(sdc.getAllCompanyInfo(fromDB=False)))
 
     # Collect the headline for the index
     h = sdc.collectHeadlines()

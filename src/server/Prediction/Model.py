@@ -200,10 +200,9 @@ class Model(torch.nn.Module):
             stockCollector = StockDataCollector()
             stocksAndHeadlines = stockCollector.collectHeadlines()
             predictionTrainingData = []
-            for stock in stocksAndHeadlines:
+            for stock, headlinesWithTime in stocksAndHeadlines.items():
 
                 # Now have the stock and the headlines (with timestamps) -- Set the predicted as the rise/fall
-
                 # Get the event embeddings [{ timestamp:, embedding: }]
                 eventEmbeddings = self._createEventEmbeddings(headlinesWithTime=headlinesWithTime)
 

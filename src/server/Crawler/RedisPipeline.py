@@ -1,6 +1,7 @@
 import json
 import pickle
 from redis import Redis
+from functools import reduce
 
 class RedisPipeline():
 
@@ -13,6 +14,7 @@ class RedisPipeline():
     def close_spider(self, spider):
 
         # Insert into the Redis store
+        self.headlines = reduce(lambda li, el: li.append(el) or li if el not in li else li, self.headlines, [])
         self.r.set(spider.symbol, pickle.dumps(sorted(self.headlines, key=lambda x: x['date'])))
         # print(self.r.get(spider.symbol))
 
