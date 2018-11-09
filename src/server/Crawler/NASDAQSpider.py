@@ -1,4 +1,5 @@
 import scrapy
+from scrapy_splash import SplashRequest
 from twisted.internet import reactor
 from scrapy.utils.log import configure_logging
 from scrapy.utils.project import get_project_settings, Settings
@@ -23,20 +24,24 @@ class NASDAQSpider(scrapy.Spider):
     def start_requests(self):
         # URLs to go through for the scraper -- Need to go through a whole bunch of pages to get all necessary data
         urls = ['https://www.nasdaq.com/symbol/{symbol}/news-headlines?page={pageNum}'.format(pageNum=(pageNum + 1), symbol=self.symbol) for pageNum in range(PAGES_NASDAQ)]
+        # urls = ['https://www.marketwatch.com/investing/stock/{symbol}'.format(symbol=self.symbol)]
+        # urls = ['https://stackoverflow.com']
 
         # Set up the requests
         for url in urls:
-            yield scrapy.Request(url=url, callback=self.parse)
+            yield SplashRequest(url=url, callback=self.parse)
 
     def parse(self, response):
 
         # Extract the story titles and strp the headline -- Can make a more complex routine to extract for single news source?
         headlines = response.css('div.news-headlines')
         for story in headlines.xpath('.//div[not(@*)]'):
+        #for story in response.css('div.article__content'):
 
             # Strip the headline text and get the date
             headline = story.css('a::text').extract_first().strip()
             dt = story.css('small::text').extract_first().strip().split(' ')[0].strip()
+            #dt = story.css('li.article__timestamp::text').extract_first().strip().split(' a')[0]
 
             # Try to create the date from the passed in time
             try:

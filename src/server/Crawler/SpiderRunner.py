@@ -4,6 +4,7 @@ from twisted.internet import reactor
 from scrapy.utils.log import configure_logging
 from scrapy.utils.project import get_project_settings, Settings
 from scrapy.crawler import CrawlerRunner, CrawlerProcess
+from src.server.Crawler.SpiderConstants import PROXY_PATH, USER_PATH
 
 class SpiderRunner():
 
@@ -17,16 +18,31 @@ class SpiderRunner():
                 # 'src.server.Crawler.JSONPipeline.JSONPipeline': 100,
                 'src.server.Crawler.RedisPipeline.RedisPipeline': 200
             },
-            'DOWNLOAD_DELAY': 2,
+            'DOWNLOAD_DELAY': 5,
             'ROBOTSTXT_OBEY': True,
-            'USER_AGENT': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            'USER_AGENT': 'Mozilla/5.0 (X11; Linux x86_64; rv:48.0) Gecko/20100101 Firefox/48.0',
             'AUTOTHROTTLE_ENABLED': True,
-            'HTTPCACHE_ENABLED': False,
+            'HTTPCACHE_ENABLED': True, # Cache enabled for testing
             'TELNETCONSOLE_PORT': None,
             'RETRY_ENABLED': False,
             'REDIRECT_ENABLED': False,
             'COOKIES_ENABLED': False,
-            'REACTOR_THREADPOOL_MAXSIZE': 20
+            'REACTOR_THREADPOOL_MAXSIZE': 20,
+            'DOWNLOAD_TIMEOUT': 240, # To avoid loss of entries?
+            # Retry many times since proxies often fail
+            'RETRY_TIMES': 10,
+            # Retry on most error codes since proxies fail for different reasons
+            'RETRY_HTTP_CODES': [500, 503, 504, 400, 403, 404, 408],
+            'DOWNLOADER_MIDDLEWARES': {
+                'scrapy.contrib.downloadermiddleware.useragent.UserAgentMiddleware': None,
+                'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
+                'scrapy_proxies.RandomProxy': 100,
+                'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
+                'random_useragent.RandomUserAgentMiddleware': 400
+            },
+            'PROXY_LIST': './proxy_list.txt',
+            'PROXY_MODE': 0,
+            'USER_AGENT_LIST': USER_PATH
         })
         self.crawlRunner = CrawlerRunner(self.settings)
 

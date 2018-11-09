@@ -24,9 +24,9 @@ class Model(torch.nn.Module):
         self.trained = False
 
         # Add the two networks
-        self.wordNetwork = WordEmbedding(configManager)
-        self.eventNetwork = EventEmbedding(WORD_EMBEDDING_LENGTH)
-        self.predictionNetwork = DeepPredictionNetwork()
+        self.wordNetwork = WordEmbedding(configManager).to(configManager.device)
+        self.eventNetwork = EventEmbedding(WORD_EMBEDDING_LENGTH).to(configManager.device)
+        self.predictionNetwork = DeepPredictionNetwork().to(configManager.device)
 
         # Create the information extraction utility
         try:
@@ -261,7 +261,8 @@ class Model(torch.nn.Module):
 # Main to sanity test this model
 if __name__ == '__main__':
 
-    m = Model(ConfigManager('LOCAL'))
+    configManager = ConfigManager('LOCAL')
+    m = Model(configManager).to(configManager.device)
     m.trainNetwork(epochs=3)
     m._loadNetwork()
     m([{

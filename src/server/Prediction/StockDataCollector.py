@@ -64,7 +64,7 @@ class StockDataCollector():
         companyInfo = self.getAllCompanyInfo(fromDB=False)
         spiderRunner = SpiderRunner()
 
-        for symbol in list(companyInfo.keys())[1001:1250]:
+        for symbol in list(companyInfo.keys())[0:50]:
 
             # Web crawl for headlines with this index or company name
             self._collectHeadlinesForIndex(index=symbol, spiderRunner=spiderRunner)
