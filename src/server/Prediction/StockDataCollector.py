@@ -1,8 +1,10 @@
 from iexfinance import get_historical_data, get_available_symbols
-from datetime import datetime
+from datetime import datetime, timedelta
 from redis import Redis
+import torch
 import scrapy
 import json
+import pprint
 import pickle
 from twisted.internet import reactor
 from scrapy.utils.log import configure_logging
@@ -44,9 +46,11 @@ class StockDataCollector():
 
         # Collect the headlines for the given index -- make sure has timestamp -- Use NASDAQ website?
         r = Redis()
-        if r.get(index) is None:
+        if r.get(index) is None or pickle.loads(r.get(index)) == []:
             # Start the crawling process and then get the headlines from Redis
             spiderRunner.run_crawlProcess(NASDAQSpider, index)
+            return True
+        return False
 
     def collectHeadlinesForIndex(self, index):
 
@@ -64,12 +68,15 @@ class StockDataCollector():
         companyInfo = self.getAllCompanyInfo(fromDB=False)
         spiderRunner = SpiderRunner()
 
-        for symbol in list(companyInfo.keys())[0:50]:
+        processExists = False
+        for symbol in list(companyInfo.keys())[0:10]:
 
             # Web crawl for headlines with this index or company name
-            self._collectHeadlinesForIndex(index=symbol, spiderRunner=spiderRunner)
+            if self._collectHeadlinesForIndex(index=symbol, spiderRunner=spiderRunner):
+                processExists = True
 
-        spiderRunner.run()
+        if processExists:
+            spiderRunner.run()
 
         # Go through and get the headlines by the company
         return self.getHeadlinesFromRedis()
@@ -82,9 +89,15 @@ class StockDataCollector():
             # Might have to add try-catch on the pickle loading
             try:
                 headlinesByCompany[symbol] = pickle.loads(Redis().get(symbol))
+
+                # Convert the str to datetime
+                for headline in headlinesByCompany[symbol]:
+                    headline['date'] = datetime.strptime(headline['date'], '%Y-%m-%d')
             except:
                 break
 
+        pprint.pprint(headlinesByCompany)
+        print(len(headlinesByCompany))
         return headlinesByCompany
 
     def getIndexInformationOnDate(self, index, date):
@@ -100,14 +113,28 @@ class StockDataCollector():
 
     def getIndexRiseFallOnDate(self, index, date):
 
-        # Retrieve the data for this date
-        data = self.getIndexInformationOnDate(index=index, date=date)
+        # This accounts for weekend issue -- stocks arent open on weekends
+        for i in range(8):
 
-        # Return the close - the open normalized to +1 or -1
-        if data.open.values[0] <= data.close.values[0]:
-            return 1
-        else:
-            return 0
+            # Try to create a date -- will error on non open days
+            try:
+                # Retrieve the data for this date
+                data = self.getIndexInformationOnDate(index=index, date=date)
+
+                # Return the close - the open normalized to +1 or -1
+                if data.open.values[0] <= data.close.values[0]:
+
+                    # Needs to return a tensor of class +1
+                    return torch.tensor([[[1, 0]]])
+                else:
+
+                    # Needs to return a tensor of class -1
+                    return torch.tensor([[[0, 1]]])
+            except:
+
+                # Add to the date
+                date += timedelta(days=1)
+                print('Error number: {i}'.format(i=i + 1))
 
 if __name__ == '__main__':
     sdc = StockDataCollector()
@@ -115,8 +142,3 @@ if __name__ == '__main__':
 
     # Collect the headline for the index
     h = sdc.collectHeadlines()
-
-
-
-
-

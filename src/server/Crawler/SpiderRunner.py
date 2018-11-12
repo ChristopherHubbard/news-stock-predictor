@@ -19,12 +19,13 @@ class SpiderRunner():
                 'src.server.Crawler.RedisPipeline.RedisPipeline': 200
             },
             'DOWNLOAD_DELAY': 5,
+            'CONCURRENT_REQUESTS': 1,
             'ROBOTSTXT_OBEY': True,
             'USER_AGENT': 'Mozilla/5.0 (X11; Linux x86_64; rv:48.0) Gecko/20100101 Firefox/48.0',
             'AUTOTHROTTLE_ENABLED': True,
             'HTTPCACHE_ENABLED': True, # Cache enabled for testing
             'TELNETCONSOLE_PORT': None,
-            'RETRY_ENABLED': False,
+            'RETRY_ENABLED': True,
             'REDIRECT_ENABLED': False,
             'COOKIES_ENABLED': False,
             'REACTOR_THREADPOOL_MAXSIZE': 20,
@@ -36,9 +37,10 @@ class SpiderRunner():
             'DOWNLOADER_MIDDLEWARES': {
                 'scrapy.contrib.downloadermiddleware.useragent.UserAgentMiddleware': None,
                 'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
-                'scrapy_proxies.RandomProxy': 100,
                 'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
-                'random_useragent.RandomUserAgentMiddleware': 400
+                'random_useragent.RandomUserAgentMiddleware': 400,
+                'rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
+                'rotating_proxies.middlewares.BanDetectionMiddleware': 620,
             },
             'PROXY_LIST': './proxy_list.txt',
             'PROXY_MODE': 0,

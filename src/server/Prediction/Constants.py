@@ -4,3 +4,5 @@ LT_DAYS = 30
 MT_DAYS = 7
 ITERATION_NUM = 500
 MODEL_FILE_PATH = './model.pth'
+PRED_TRAIN_DATA_FILE = './predictionData.pkl'
+EVENT_TRAIN_DATA_FILE = './eventData.pkl'

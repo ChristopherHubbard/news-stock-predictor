@@ -4,6 +4,7 @@ import subprocess
 from pycorenlp import StanfordCoreNLP
 from ConfigManager import ConfigManager
 
+# Extract information from string -- need to modify this methodology to accept more events!
 class InformationExtraction():
 
     def __init__(self, configManager):

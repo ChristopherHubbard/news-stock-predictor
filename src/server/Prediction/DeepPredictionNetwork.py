@@ -91,8 +91,8 @@ class DeepPredictionNetwork(torch.nn.Module):
             # Apply the first sigmoid function to get output of hidden layer
             torch.nn.Sigmoid(),
             PrintLayer(),
-            # Apply a linear layer for the weights before the output layer -- Only one output on the output layer
-            torch.nn.Linear(in_features=hiddenLayer, out_features=1, bias=False),
+            # Apply a linear layer for the weights before the output layer -- Only two output on the output layer -- -1 and +1 class
+            torch.nn.Linear(in_features=hiddenLayer, out_features=2, bias=False),
             # Apply the final sigmoid function
             torch.nn.Sigmoid(),
             PrintLayer()
