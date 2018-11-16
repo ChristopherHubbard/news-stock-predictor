@@ -1,6 +1,7 @@
 # Imports
 import torch
 from Constants import WORD_EMBEDDING_LENGTH, SLICE_SIZE, ITERATION_NUM
+from NormalizationLayer import NormalizationLayer
 
 # No need to import numpy since pytorch uses tensors instead of direct np arrays
 
@@ -42,8 +43,10 @@ class EventEmbedding(torch.nn.Module):
         self.linear2 = torch.nn.Linear(in_features=(self.action_size + self.object_size), out_features=self.k, bias=True)
         self.linear3 = torch.nn.Linear(in_features=(self.k + self.k), out_features=self.k, bias=True)
 
-        # Activation function for the result
+        # Activation function for the result -- Tanh works poorly?
         self.activation = torch.nn.Tanh()
+
+        self.norm = NormalizationLayer(features=self.k)
 
     # Result of a forward pass -- This should return the event embeddings
     def forward(self, event):
@@ -53,8 +56,8 @@ class EventEmbedding(torch.nn.Module):
         stacked_o1_P = torch.cat((o1, p), -1)
         stacked_o2_P = torch.cat((p, o2), -1)
 
-        r1 = self.biLinear1(o1, p) + self.linear1(stacked_o1_P)
-        r2 = self.biLinear2(p, o2) + self.linear2(stacked_o2_P)
+        r1 = self.activation(self.biLinear1(o1, p) + self.linear1(stacked_o1_P))
+        r2 = self.activation(self.biLinear2(p, o2) + self.linear2(stacked_o2_P))
 
         # How to insure that these concats yield the appropriate results?
         stacked_r1_r2 = torch.cat((r1, r2), -1)
@@ -65,29 +68,33 @@ class EventEmbedding(torch.nn.Module):
         return self.activation(u)
 
     # Method to train the event embedding network -- calculate loss and use standard backpropagation
-    def trainNetwork(self, trainingData):
+    def trainNetwork(self, trainingData, epochs=10):
 
         # Create the loss function and optimizer
         loss_fn = torch.nn.MarginRankingLoss(margin=1)
         optimizer = torch.optim.Adam(params=self.parameters(), lr=1e-4, weight_decay=1e-4) # Set up the optimizer using defaults on Adam (recommended for deep nets)
 
-        # Go through the data samples
-        for input, corruptInput in trainingData:
+        for _ in range(epochs):
 
-            # Forward pass on the input
-            output = self.forward(input)
-            corruptedOutput = self.forward(corruptInput)
+            # Go through the data samples
+            for input, corruptInput in trainingData:
 
-            # Compute the loss -- Print the loss to console
-            loss = loss_fn(output, corruptedOutput, torch.ones(self.k))
-            print(input, loss.item())
+                # Continue running until loss becomes zero -- seems like def of overfitting but whatever
+                # Forward pass on the input
+                output = self.forward(input)
+                corruptedOutput = self.forward(corruptInput)
 
-            # Backward pass -- Zero the gradient to avoid accumulation during backward pass
-            optimizer.zero_grad()
-            loss.backward()
+                # Compute the loss -- Print the loss to console
+                loss = loss_fn(output, corruptedOutput, torch.ones(self.k))
+                print('Event Network: ')
+                print(input, output, corruptedOutput, loss.item())
 
-            # Update the parameters of the optimization function
-            optimizer.step()
+                # Backward pass -- Zero the gradient to avoid accumulation during backward pass
+                optimizer.zero_grad()
+                loss.backward()
+
+                # Update the parameters of the optimization function
+                optimizer.step()
 
         self.trained = True
         # Return the network after training

@@ -8,7 +8,7 @@ from src.server.Crawler.SpiderConstants import PROXY_PATH, USER_PATH
 
 class SpiderRunner():
 
-    def __init__(self):
+    def __init__(self, useCache=True):
 
         # Initialize the required resources
         # Scrapy needs to run inside twisted reactor -- Start the process
@@ -18,14 +18,15 @@ class SpiderRunner():
                 # 'src.server.Crawler.JSONPipeline.JSONPipeline': 100,
                 'src.server.Crawler.RedisPipeline.RedisPipeline': 200
             },
-            'DOWNLOAD_DELAY': 5,
-            'CONCURRENT_REQUESTS': 1,
+            'DOWNLOAD_DELAY': 3,
+            'CONCURRENT_REQUESTS': 10,
             'ROBOTSTXT_OBEY': True,
             'USER_AGENT': 'Mozilla/5.0 (X11; Linux x86_64; rv:48.0) Gecko/20100101 Firefox/48.0',
             'AUTOTHROTTLE_ENABLED': True,
-            'HTTPCACHE_ENABLED': True, # Cache enabled for testing
+            'HTTPCACHE_ENABLED': useCache, # Cache enabled for testing
+            'HTTPCACHE_EXPIRATION_SECS': 0,
             'TELNETCONSOLE_PORT': None,
-            'RETRY_ENABLED': True,
+            'RETRY_ENABLED': False,
             'REDIRECT_ENABLED': False,
             'COOKIES_ENABLED': False,
             'REACTOR_THREADPOOL_MAXSIZE': 20,
@@ -48,9 +49,9 @@ class SpiderRunner():
         })
         self.crawlRunner = CrawlerRunner(self.settings)
 
-    def run_crawlProcess(self, spider, index):
+    def run_crawlProcess(self, spider, index, pages=10):
 
-        return self.crawlRunner.crawl(spider, index)
+        return self.crawlRunner.crawl(spider, index, pages)
 
     # Run the reactor
     def run(self):

@@ -1,5 +1,9 @@
 import torch
 from math import floor
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+plt.interactive(False)
 
 # Import global constants
 from Constants import SLICE_SIZE, LT_DAYS, MT_DAYS, ITERATION_NUM
@@ -7,6 +11,7 @@ from Constants import SLICE_SIZE, LT_DAYS, MT_DAYS, ITERATION_NUM
 # Import custom layers
 from PrintLayer import PrintLayer
 from TransformLayer import TransformLayer
+from NormalizationLayer import NormalizationLayer
 
 # Create the network used to predict the up or down for the stock based on event embeddings
 # The output should only be a single digit from the output model -- +1 or 0
@@ -57,8 +62,7 @@ class DeepPredictionNetwork(torch.nn.Module):
                                return_indices=False,
                                ceil_mode=False),
             # May have to create flattening layer her to flatten the tensor
-            TransformLayer((1, 1, SLICE_SIZE)),
-            PrintLayer()
+            TransformLayer((1, 1, SLICE_SIZE))
         )
 
         self.MTFeatureModel = torch.nn.Sequential(
@@ -80,22 +84,20 @@ class DeepPredictionNetwork(torch.nn.Module):
                                return_indices=False,
                                ceil_mode=False),
             # May have to create flattening layer here to flatten the tensor
-            TransformLayer((1, 1, SLICE_SIZE)),
-            PrintLayer()
+            TransformLayer((1, 1, SLICE_SIZE))
         )
 
         # Hidden and output layers to be applied to feature vector (Vlt, Vmt, Vst) -- Not sure if this is correct
         self.outputModel = torch.nn.Sequential(
             # Apply a linear layer for the weights before the first sigmoid -- input is 3 feature vectors length -- neurons in hidden layer are average of input and output layers
             torch.nn.Linear(in_features=inputLayer, out_features=hiddenLayer, bias=False),
-            # Apply the first sigmoid function to get output of hidden layer
+            # Apply the first sigmoid function to get output of hidden layer -- This sucks maybe try ReLU again?
             torch.nn.Sigmoid(),
-            PrintLayer(),
             # Apply a linear layer for the weights before the output layer -- Only two output on the output layer -- -1 and +1 class
-            torch.nn.Linear(in_features=hiddenLayer, out_features=2, bias=False),
+            torch.nn.Linear(in_features=hiddenLayer, out_features=2, bias=True),
             # Apply the final sigmoid function
-            torch.nn.Sigmoid(),
-            PrintLayer()
+            torch.nn.Sigmoid()
+            #torch.nn.Softmax(dim=2)
         )
 
     # Forward pass of the deep prediction network -- should produce whether stock price increases or decreases
@@ -116,38 +118,54 @@ class DeepPredictionNetwork(torch.nn.Module):
         return self.outputModel(featureVector)
 
     # Method to train this network -- Calculate loss and update using standard backpropagation
-    def trainNetwork(self, trainingData):
+    def trainNetwork(self, trainingData, epochs=10):
+
+        # Place into training mode
+        self.train()
 
         # Create the loss function and optimizer
-        loss_fn = torch.nn.L1Loss()
+        loss_fn = torch.nn.BCELoss()
         optimizer = torch.optim.Adam(params=self.parameters(), lr=1e-4, weight_decay=1e-4)  # Set up the optimizer using defaults on Adam (recommended for deep nets)
 
-        # Go through the data samples
-        for input, target in trainingData:
-            # Forward pass
-            output = self.forward(input)
+        lossValues = []
+        for _ in range(epochs):
 
-            # Compute the loss -- Print the loss to console
-            loss = loss_fn(output, target)
-            print(input, loss.item())
+            # Go through the data samples
+            for input, target in trainingData:
+                # Forward pass
+                output = self.forward(input)
 
-            # Backward pass -- Zero the gradient to avoid accumulation during backward pass
-            optimizer.zero_grad()
-            loss.backward()
+                # Compute the loss -- Print the loss to console
+                loss = loss_fn(output, target)
+                print('Prediction Network: ')
+                print(input, output, loss.item())
 
-            # Update the parameters of the optimization function
-            optimizer.step()
+                # Backward pass -- Zero the gradient to avoid accumulation during backward pass
+                optimizer.zero_grad()
+                loss.backward()
+                lossValues.append(loss.data.numpy())
+
+                # Update the parameters of the optimization function
+                optimizer.step()
 
         self.trained = True
+        self.plotLoss(lossValues)
+        self.eval()
         # Return the network after training
         return self
+
+    def plotLoss(self, lossValues):
+
+        # Plot the loss of this run
+        plt.plot(lossValues)
+
 
 # Main for temporary testing
 if __name__ == '__main__':
 
     net = DeepPredictionNetwork()
 
-    net.trainNetwork()
+    # net.trainNetwork()
 
     for x in range(100):
         lt = torch.randn(1, 30, SLICE_SIZE) # These are all correct for the setup -- but maxpooling or conv1d layers causing 1, 256, 239 output shape

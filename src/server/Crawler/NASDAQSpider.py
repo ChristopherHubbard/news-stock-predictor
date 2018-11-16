@@ -11,9 +11,10 @@ from src.server.Crawler.SpiderConstants import PAGES_NASDAQ
 # Spider to extract stories from CNBC News
 class NASDAQSpider(scrapy.Spider):
 
-    def __init__(self, symbol):
+    def __init__(self, symbol, pages=PAGES_NASDAQ):
 
         self.set_symbol(symbol=symbol)
+        self.pages = pages
 
     def set_symbol(self, symbol):
 
@@ -23,7 +24,7 @@ class NASDAQSpider(scrapy.Spider):
     # Where the scraping requests begin
     def start_requests(self):
         # URLs to go through for the scraper -- Need to go through a whole bunch of pages to get all necessary data
-        urls = ['https://www.nasdaq.com/symbol/{symbol}/news-headlines?page={pageNum}'.format(pageNum=(pageNum + 1), symbol=self.symbol) for pageNum in range(PAGES_NASDAQ)]
+        urls = ['https://www.nasdaq.com/symbol/{symbol}/news-headlines?page={pageNum}'.format(pageNum=(pageNum + 1), symbol=self.symbol) for pageNum in range(self.pages)]
         # urls = ['https://www.marketwatch.com/investing/stock/{symbol}'.format(symbol=self.symbol)]
         # urls = ['https://stackoverflow.com']
 

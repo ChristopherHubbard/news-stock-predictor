@@ -42,21 +42,21 @@ class StockDataCollector():
         # Store all the company information from the company dictionary in Dynamo
         companyInfo = self.getAllCompanyInfo(fromDB=False)
 
-    def _collectHeadlinesForIndex(self, index, spiderRunner):
+    def _collectHeadlinesForIndex(self, index, spiderRunner, useCache=True, pages=10):
 
         # Collect the headlines for the given index -- make sure has timestamp -- Use NASDAQ website?
         r = Redis()
-        if r.get(index) is None or pickle.loads(r.get(index)) == []:
+        if not useCache or (r.get(index) is None or pickle.loads(r.get(index)) == []):
             # Start the crawling process and then get the headlines from Redis
-            spiderRunner.run_crawlProcess(NASDAQSpider, index)
+            spiderRunner.run_crawlProcess(NASDAQSpider, index, pages)
             return True
         return False
 
     def collectHeadlinesForIndex(self, index):
 
         # Call necessary functionality and start reactor
-        spiderRunner = SpiderRunner()
-        self._collectHeadlinesForIndex(index, spiderRunner)
+        spiderRunner = SpiderRunner(useCache=False)
+        self._collectHeadlinesForIndex(index, spiderRunner, useCache=False, pages=50)
         spiderRunner.run()
 
         # Should have called a callback to stop the reactor
@@ -69,7 +69,7 @@ class StockDataCollector():
         spiderRunner = SpiderRunner()
 
         processExists = False
-        for symbol in list(companyInfo.keys())[0:10]:
+        for symbol in list(companyInfo.keys())[1700:2250]:
 
             # Web crawl for headlines with this index or company name
             if self._collectHeadlinesForIndex(index=symbol, spiderRunner=spiderRunner):
@@ -94,9 +94,8 @@ class StockDataCollector():
                 for headline in headlinesByCompany[symbol]:
                     headline['date'] = datetime.strptime(headline['date'], '%Y-%m-%d')
             except:
-                break
+                pass
 
-        pprint.pprint(headlinesByCompany)
         print(len(headlinesByCompany))
         return headlinesByCompany
 
@@ -114,7 +113,7 @@ class StockDataCollector():
     def getIndexRiseFallOnDate(self, index, date):
 
         # This accounts for weekend issue -- stocks arent open on weekends
-        for i in range(8):
+        for i in range(3):
 
             # Try to create a date -- will error on non open days
             try:
@@ -125,20 +124,22 @@ class StockDataCollector():
                 if data.open.values[0] <= data.close.values[0]:
 
                     # Needs to return a tensor of class +1
-                    return torch.tensor([[[1, 0]]])
+                    return torch.tensor([[[1, 0]]]).type(torch.DoubleTensor)
                 else:
 
                     # Needs to return a tensor of class -1
-                    return torch.tensor([[[0, 1]]])
+                    return torch.tensor([[[0, 1]]]).type(torch.DoubleTensor)
             except:
 
                 # Add to the date
                 date += timedelta(days=1)
                 print('Error number: {i}'.format(i=i + 1))
+        return torch.tensor([[[0.5, 0.5]]]).type(torch.DoubleTensor)
 
 if __name__ == '__main__':
     sdc = StockDataCollector()
-    sdc.getIndexRiseFallOnDate(index='MSFT', date='5 Nov 2018')
+    print(sdc.getIndexRiseFallOnDate(index='MSFT', date='5 Nov 2018'))
 
     # Collect the headline for the index
     h = sdc.collectHeadlines()
+    x = sdc.getHeadlinesFromRedis()
