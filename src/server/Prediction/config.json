@@ -4,7 +4,7 @@
     "GloVePath": "../GloVe/"
   },
   "DEV": {
-
+    "StanfordCoreNLPServer": "http://"
   },
   "TEST": {
 
