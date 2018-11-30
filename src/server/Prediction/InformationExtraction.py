@@ -32,7 +32,7 @@ class InformationExtraction():
 
             # Construct the tuple
             return (openIE['subject'], openIE['relation'], openIE['object'])
-        except:
+        except Exception as ex:
             raise ValueError('There was an error creating the tuple.')
 
     # Method to create a corrupt tuple
@@ -53,7 +53,7 @@ class InformationExtraction():
 
 # Main routine to test the extraction functionality
 if __name__ == '__main__':
-    ie = InformationExtraction(ConfigManager('LOCAL'))
+    ie = InformationExtraction(ConfigManager('DEV'))
     print(ie.createStructuredTuple('Nvidia fourth quarter results miss views.'))
     print(ie.createStructuredTuple("Amazon eliminates worker bonuses right before the holidays."))
     print(ie.createStructuredTuple("Delta profits didn't reach goals."))

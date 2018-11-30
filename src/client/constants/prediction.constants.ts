@@ -1,0 +1,13 @@
+interface IPredictionConstants
+{
+    GET_PREDICTION_REQUEST: string,
+    GET_PREDICTION_SUCCESS: string,
+    GET_PREDICTION_ERROR: string,
+}
+
+export const predictionConstants: IPredictionConstants =
+{
+    GET_PREDICTION_REQUEST: "GET_PREDICTION_REQUEST",
+    GET_PREDICTION_SUCCESS: "GET_PREDICTION_SUCCESS",
+    GET_PREDICTION_ERROR: "GET_PREDICTION_ERROR",
+}

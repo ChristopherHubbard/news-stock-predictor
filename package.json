@@ -1,0 +1,54 @@
+{
+  "name": "stock-predictor",
+  "version": "1.0.0",
+  "description": "Predicts stock movements using deep neural networks to classify news headline events",
+  "main": "index.js",
+  "dependencies": {
+    "@types/cookie-parser": "^1.4.1",
+    "@types/errorhandler": "0.0.32",
+    "@types/express": "^4.16.0",
+    "@types/history": "^4.7.2",
+    "@types/method-override": "0.0.31",
+    "@types/morgan": "^1.7.35",
+    "@types/node": "^10.12.10",
+    "@types/react": "^16.7.10",
+    "@types/react-dom": "^16.0.11",
+    "@types/react-redux": "^6.0.10",
+    "@types/react-router-dom": "^4.3.1",
+    "@types/redux-form": "^7.4.12",
+    "axios": "^0.18.0",
+    "body-parser": "^1.18.3",
+    "cookie-parser": "^1.4.3",
+    "copy-webpack-plugin": "^4.6.0",
+    "errorhandler": "^1.5.0",
+    "express": "^4.16.4",
+    "history": "^4.7.2",
+    "method-override": "^3.0.0",
+    "morgan": "^1.9.1",
+    "react": "^16.6.3",
+    "react-dom": "^16.6.3",
+    "react-redux": "^5.1.1",
+    "react-router-dom": "^4.3.1",
+    "redux": "^4.0.1",
+    "redux-form": "^7.4.2",
+    "redux-thunk": "^2.3.0",
+    "webpack": "^4.26.1",
+    "webpack-cli": "^3.1.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "npm run build && node --inspect-brk ./distlib/src/server/index.js",
+    "build": "tsc -p ./ && webpack --config ./distlib/webpack.config.js --mode development",
+    "watch": "tsc -watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChristopherHubbard/news-stock-predictor.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ChristopherHubbard/news-stock-predictor/issues"
+  },
+  "homepage": "https://github.com/ChristopherHubbard/news-stock-predictor#readme"
+}
