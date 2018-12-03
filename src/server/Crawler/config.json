@@ -1,0 +1,16 @@
+{
+  "LOCAL": {
+    "StanfordCoreNLPServer": "http://localhost:8080/",
+    "GloVePath": "../GloVe/"
+  },
+  "DEV": {
+    "StanfordCoreNLPServer": "http://ec2-18-224-180-26.us-east-2.compute.amazonaws.com",
+    "GloVePath": "../GloVe"
+  },
+  "TEST": {
+
+  },
+  "PROD": {
+
+  }
+}
