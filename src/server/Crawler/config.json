@@ -1,11 +1,15 @@
 {
   "LOCAL": {
-    "StanfordCoreNLPServer": "http://localhost:8080/",
-    "GloVePath": "../GloVe/"
+    "Dynamodb": {
+      "Region": "us-east-2",
+      "Endpoint": "http://localhost:8000"
+    }
   },
   "DEV": {
-    "StanfordCoreNLPServer": "http://ec2-18-224-180-26.us-east-2.compute.amazonaws.com",
-    "GloVePath": "../GloVe"
+    "Dynamodb": {
+      "Region": "us-east-2",
+      "Endpoint": "https://dynamodb.us-east-2.amazonaws.com"
+    }
   },
   "TEST": {
 

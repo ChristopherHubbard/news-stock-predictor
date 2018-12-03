@@ -1,0 +1,7 @@
+provider:
+  name: aws
+  runtime: python3.6
+
+functions:
+  crawlNASDAQ:
+    handler: CrawlHandler.crawl_handler

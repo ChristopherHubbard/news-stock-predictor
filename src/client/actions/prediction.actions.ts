@@ -8,7 +8,7 @@ interface IPredictionActions
     predict: (index: string) => (dispatch: Dispatch<any>) => void,
 }
 
-export const coinActions: IPredictionActions =
+export const predictionActions: IPredictionActions =
 {
     predict: predict
 };

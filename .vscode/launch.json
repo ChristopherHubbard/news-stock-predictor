@@ -10,14 +10,14 @@
             "name": "Attach by Process ID",
             "processId": "${command:PickProcess}",
             "outFiles": [
-                "${workspaceFolder}/distlib/src/server/index.js"
+                "${workspaceFolder}/distlib/src/server/express/index.js"
             ]
         },
         {
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "program": "${workspaceFolder}/distlib/src/server/index.js",
+            "program": "${workspaceFolder}/distlib/src/server/express/index.js",
             "preLaunchTask": "npm: build",
             "outFiles": [
                 "${workspaceFolder}/distlib/src/server/index.js"

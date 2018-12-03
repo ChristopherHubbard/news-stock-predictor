@@ -41,7 +41,7 @@ export class Server
     {
         //Add static paths -- needs to be updated for the different frontend methods
         //this.app.use(express.static(path.join(__dirname, "./views/Vue")));
-        this.app.use(express.static(path.join(__dirname, "../../../", "dist")));
+        this.app.use(express.static(path.join(__dirname, "../../../../", "dist")));
 
         //Use Logger middleware
         this.app.use(morgan("dev"));

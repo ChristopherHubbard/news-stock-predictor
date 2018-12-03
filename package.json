@@ -32,13 +32,17 @@
     "redux": "^4.0.1",
     "redux-form": "^7.4.2",
     "redux-thunk": "^2.3.0",
+    "url-loader": "^1.1.2",
     "webpack": "^4.26.1",
     "webpack-cli": "^3.1.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "file-loader": "^2.0.0"
+  },
   "scripts": {
     "start": "npm run build && node --inspect-brk ./distlib/src/server/index.js",
-    "build": "tsc -p ./ && webpack --config ./distlib/webpack.config.js --mode development",
+    "build": "npm run copy && tsc -p ./ && webpack --config ./distlib/webpack.config.js --mode development",
+    "copy": "copyfiles src/**/*.png distlib/",
     "watch": "tsc -watch"
   },
   "repository": {

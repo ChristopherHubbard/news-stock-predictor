@@ -5,8 +5,9 @@ let http : any = require("http");
 
 //Set the app
 let app : any = (new Server()).app;
-//Get the port from the enviornment
-const port : string | number | boolean = NormalizePort(process.env.PORT || 8080);
+
+//Get the port from the enviornment -- set to 3000 if none provided
+const port : string | number | boolean = NormalizePort(process.env.PORT || 3000);
 app.set("port", port);
 
 //Create http server

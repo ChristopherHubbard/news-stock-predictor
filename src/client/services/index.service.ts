@@ -17,7 +17,7 @@ export abstract class IndexService
         try
         {
             // Await the response -- send this straight to IEX
-            return await axios.get(`${Config.apiUrl}/`, requestOptions);
+            return await axios.get(`${Config.LOCAL.apiUrl}/companies`, requestOptions);
         }
         catch(error)
         {

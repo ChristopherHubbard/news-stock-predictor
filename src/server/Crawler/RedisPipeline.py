@@ -12,10 +12,10 @@ class RedisPipeline():
         self.r = Redis()
 
     def close_spider(self, spider):
-
-        # Insert into the Redis store
-        self.headlines = reduce(lambda li, el: li.append(el) or li if el not in li else li, self.headlines, [])
-        self.r.set(spider.symbol, pickle.dumps(sorted(self.headlines, key=lambda x: x['date'])))
+        pass
+        #Insert into the Redis store
+        #self.headlines = reduce(lambda li, el: li.append(el) or li if el not in li else li, self.headlines, [])
+        #self.r.set(spider.symbol, pickle.dumps(sorted(self.headlines, key=lambda x: x['date'])))
         # print(self.r.get(spider.symbol))
 
     def process_item(self, item, spider):

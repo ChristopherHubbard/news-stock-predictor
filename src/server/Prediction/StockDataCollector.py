@@ -2,29 +2,58 @@ from iexfinance import get_historical_data, get_available_symbols
 from datetime import datetime, timedelta
 from redis import Redis
 import torch
-import scrapy
-import json
-import pprint
+import boto3
 import pickle
-from twisted.internet import reactor
-from scrapy.utils.log import configure_logging
-from scrapy.utils.project import get_project_settings
-from scrapy.crawler import CrawlerRunner
 
 # Probably will just make a crawling microservice eventually
 from src.server.Crawler.NASDAQSpider import NASDAQSpider
 from src.server.Crawler.SpiderRunner import SpiderRunner
+from ConfigManager import ConfigManager
+
+dynamodb = boto3.resource('dynamodb', region_name='us-west-2', endpoint_url="http://localhost:8000")
+
+# Lambda handler function
+def crawl_handler(event, context):
+
+    # Create the required config -- might use context instead of event
+    config = ConfigManager(event['env'])
+
+    # Create a stock data collector
+    collector = StockDataCollector()
+
+    # Get which index should be crawled
+    index = event['index']
+
+    # Get the headlines
+    headlines = collector.collectHeadlinesForIndex(index, pages=10)
+
+    # Create dynamo connection
+    dynamo = boto3.resource('dyanmodb', region_name=config.config['Region'], endpoint_url=config.config['Endpoint'])
+
+    # Store into DB
+    collector.storeHeadlinesForIndex(index, headlines, dynamo)
+
+    # Return the headlines
+    return {
+        'index': index,
+        'headlines': headlines
+    }
+
 
 # This class collects a months worth of headlines for an index
 class StockDataCollector():
 
-    def getAllCompanyInfo(self, fromDB=True):
+    def getAllCompanyInfo(self, fromDB=True, dynamo=None):
 
         # Get the company information either from the DB or from IEX -- Should only need to IEX once
         companyInformation = {}
         if fromDB:
-            pass
+
+            # Retrieve from dynamo -- scan should work
+            table = dynamo.Table('Headlines')
+            companyInformation = table.scan()['Items']
         else:
+
             # Get all the indices that the IEX finance API can server
             companyData = get_available_symbols()
 
@@ -37,10 +66,46 @@ class StockDataCollector():
 
         return companyInformation
 
-    def storeAllCompanyInfo(self):
+    def storeAllCompanyInfo(self, dynamo):
 
         # Store all the company information from the company dictionary in Dynamo
         companyInfo = self.getAllCompanyInfo(fromDB=False)
+
+        # Store into dynamo
+        table = dynamo.Table('Headlines')
+
+        # Insert the entries
+        for index, name in companyInfo.values():
+
+            # Store in dynamo -- no headlines -- this only needs to be done on initialization
+            table.put_item(
+                Item={
+                    'index': index,
+                    'name': name,
+                    'headlines': []
+                }
+            )
+
+    def collectHeadlinesForIndex(self, index, pages=10):
+
+        # Collect the headlines for this index
+        return self.spiderRunner.run_crawlProcess(NASDAQSpider, index, pages)
+
+    def storeHeadlinesForIndex(self, index, headlines, dynamo):
+
+        # Store into dynamoDB
+        table = dynamo.Table('Headlines')
+
+        # Update the table
+        table.update_item(
+            Key={
+                'index': index
+            },
+            UpdateExpression='set headlines = :r',
+            ExpressionUpdateValues={
+                ':r': headlines
+            }
+        )
 
     def _collectHeadlinesForIndex(self, index, spiderRunner, useCache=True, pages=10):
 

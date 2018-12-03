@@ -18,7 +18,7 @@ export abstract class PredictionService
         try
         {
             // Await the response -- send this to the prediction endpoint to run the model for this index
-            return await axios.get(`${Config.apiUrl}/`, requestOptions);
+            return await axios.get(`${Config.LOCAL.apiUrl}/prediction`, requestOptions);
         }
         catch(error)
         {
