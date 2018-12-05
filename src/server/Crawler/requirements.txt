@@ -1,0 +1,6 @@
+boto3
+scrapy
+scrapy_splash
+twisted
+iexfinance
+scrapydo
