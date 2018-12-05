@@ -7,6 +7,7 @@ package-lock.json
 
 # Ignore all cache files, access keys, redis dump, etc
 .idea
+.serverless
 *.pem
 *.data.json
 /dump.rdb

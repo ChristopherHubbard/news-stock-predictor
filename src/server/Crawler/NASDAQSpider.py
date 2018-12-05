@@ -6,7 +6,7 @@ from scrapy.utils.project import get_project_settings, Settings
 from scrapy.crawler import CrawlerRunner
 from datetime import datetime
 
-from src.server.Crawler.SpiderConstants import PAGES_NASDAQ
+from SpiderConstants import PAGES_NASDAQ
 
 # Spider to extract stories from CNBC News
 class NASDAQSpider(scrapy.Spider):

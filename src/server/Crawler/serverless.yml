@@ -1,7 +1,89 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+# serverless.yml
+service: crawler
+
+# lock us to a pre-2.0 (not yet released) version of the serverless framework to protect us from breaking changes
+frameworkVersion: ">=1.16.0 <2.0.0"
+
+# pick our language and provider, this is automatically filled in by the template
 provider:
   name: aws
   runtime: python3.6
+  profile: Serverless
+  region: us-east-2
 
+environment:
+  SLS_DEBUG: true
+
+plugins:
+  - serverless-python-requirements
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+
+
+# now the good stuff: we can define our functions here
 functions:
-  crawlNASDAQ:
-    handler: CrawlHandler.crawl_handler
+
+  # Crawl function
+  crawl:
+    # File.function
+    handler: Handler.run_crawl
+    timeout: 600
+    events:
+      - http:
+          # instead of / you can define any HTTP path you like
+          # since we just have one endpoint I used /
+          path: /crawl
+          method: get
+
+  initializeCompanies:
+    # File.function
+    handler: Handler.initializeCompanies
+    timeout: 100
+    events:
+      - http:
+          # Path and method type
+          path: /initCompanies
+          method: post
+
+  headlines:
+    handler: Handler.getHeadlines
+    timeout: 6
+    events:
+      - http:
+          # Path and method type
+          path: /headlines
+          method: get
+
+  removeHeadlines:
+    handler: Handler.removeExpiredHeadlines
+    timeout: 900
+    events:
+      - http:
+          # Path and method type
+          path: /removeHeadlines
+          method: post
+      # Schedule the event to run every 30 days -- clears out old events
+      - schedule: rate(30 days)
+
+  companies:
+    handler: Handler.getCompanies
+    timeout: 6
+    events:
+      - http:
+          # Path and method type
+          path: /companies
+          method: get

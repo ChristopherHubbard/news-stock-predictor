@@ -6,12 +6,12 @@ from twisted.internet import reactor
 from scrapy.utils.log import configure_logging
 from scrapy.utils.project import get_project_settings, Settings
 from scrapy.crawler import CrawlerRunner, CrawlerProcess
-from src.server.Crawler.SpiderConstants import PROXY_PATH, USER_PATH
+from SpiderConstants import PROXY_PATH, USER_PATH
 
 # Setup scrapydo
 scrapydo.setup()
 scrapydo.default_settings.update({
-    'LOG_LEVEL': 'DEBUG',
+    'LOG_LEVEL': 'ERROR',
     'CLOSESPIDER_PAGECOUNT': 20
 })
 logging.root.setLevel(logging.INFO)

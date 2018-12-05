@@ -1,6 +1,7 @@
 boto3
 scrapy
 scrapy_splash
-twisted
 iexfinance
 scrapydo
+scrapy-random-useragent
+scrapy-rotating-proxies
