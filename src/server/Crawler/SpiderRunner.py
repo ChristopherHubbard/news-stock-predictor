@@ -12,7 +12,7 @@ from SpiderConstants import PROXY_PATH, USER_PATH
 scrapydo.setup()
 scrapydo.default_settings.update({
     'LOG_LEVEL': 'ERROR',
-    'CLOSESPIDER_PAGECOUNT': 20
+    'CLOSESPIDER_PAGECOUNT': 50
 })
 logging.root.setLevel(logging.INFO)
 
@@ -23,24 +23,20 @@ class SpiderRunner():
         # Initialize the required resources
         # Scrapy needs to run inside twisted reactor -- Start the process
         configure_logging({'LOG_FORMAT': '%(levelname)s: %(message)s'})
-        self.settings = Settings({
-            'ITEM_PIPELINES': {
-                # 'src.server.Crawler.JSONPipeline.JSONPipeline': 100,
-                'src.server.Crawler.RedisPipeline.RedisPipeline': 200
-            },
+        self.settings = {
             'DOWNLOAD_DELAY': 3,
-            'CONCURRENT_REQUESTS': 10,
-            'ROBOTSTXT_OBEY': True,
+            'CONCURRENT_REQUESTS': 20,
+            'ROBOTSTXT_OBEY': False,
             'USER_AGENT': 'Mozilla/5.0 (X11; Linux x86_64; rv:48.0) Gecko/20100101 Firefox/48.0',
             'AUTOTHROTTLE_ENABLED': True,
-            'HTTPCACHE_ENABLED': useCache, # Cache enabled for testing
+            'HTTPCACHE_ENABLED': False, # Cache enabled for testing
             'HTTPCACHE_EXPIRATION_SECS': 0,
             'TELNETCONSOLE_PORT': None,
             'RETRY_ENABLED': False,
             'REDIRECT_ENABLED': False,
             'COOKIES_ENABLED': False,
             'REACTOR_THREADPOOL_MAXSIZE': 20,
-            'DOWNLOAD_TIMEOUT': 10, # To avoid loss of entries?
+            'DOWNLOAD_TIMEOUT': 30, # To avoid loss of entries?
             # Retry many times since proxies often fail
             'RETRY_TIMES': 10,
             # Retry on most error codes since proxies fail for different reasons
@@ -48,16 +44,16 @@ class SpiderRunner():
             'DOWNLOADER_MIDDLEWARES': {
                 'scrapy.contrib.downloadermiddleware.useragent.UserAgentMiddleware': None,
                 'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
-                'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
+                'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 610,
                 'random_useragent.RandomUserAgentMiddleware': 400,
-                'rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
+                'rotating_proxies.middlewares.RotatingProxyMiddleware': 110,
                 'rotating_proxies.middlewares.BanDetectionMiddleware': 620,
             },
-            'PROXY_LIST': './proxy_list.txt',
+            'PROXY_LIST': PROXY_PATH,
             'PROXY_MODE': 0,
             'USER_AGENT_LIST': USER_PATH
-        })
-        self.crawlRunner = CrawlerRunner(self.settings)
+        }
+        self.crawlRunner = CrawlerRunner(Settings(self.settings))
 
     def run_scrapydoProcess(self, spider, index, pages=10):
 
@@ -67,36 +63,7 @@ class SpiderRunner():
             'pages': pages,
             'capture_items': True,
             'timeout': 360,
-            'settings': {
-                'DOWNLOAD_DELAY': 3,
-                'CONCURRENT_REQUESTS': 20,
-                'ROBOTSTXT_OBEY': False,
-                'USER_AGENT': 'Mozilla/5.0 (X11; Linux x86_64; rv:48.0) Gecko/20100101 Firefox/48.0',
-                'AUTOTHROTTLE_ENABLED': True,
-                'HTTPCACHE_ENABLED': False, # Cache enabled for testing
-                'HTTPCACHE_EXPIRATION_SECS': 0,
-                'TELNETCONSOLE_PORT': None,
-                'RETRY_ENABLED': False,
-                'REDIRECT_ENABLED': False,
-                'COOKIES_ENABLED': False,
-                'REACTOR_THREADPOOL_MAXSIZE': 20,
-                'DOWNLOAD_TIMEOUT': 30, # To avoid loss of entries?
-                # Retry many times since proxies often fail
-                'RETRY_TIMES': 10,
-                # Retry on most error codes since proxies fail for different reasons
-                'RETRY_HTTP_CODES': [500, 503, 504, 400, 403, 404, 408],
-                'DOWNLOADER_MIDDLEWARES': {
-                    'scrapy.contrib.downloadermiddleware.useragent.UserAgentMiddleware': None,
-                    'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
-                    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
-                    'random_useragent.RandomUserAgentMiddleware': 400,
-                    'rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
-                    'rotating_proxies.middlewares.BanDetectionMiddleware': 620,
-                },
-                'PROXY_LIST': './proxy_list.txt',
-                'PROXY_MODE': 0,
-                'USER_AGENT_LIST': USER_PATH
-            }
+            'settings': self.settings
         }
         return scrapydo.run_spider(spider, **spider_args)
 

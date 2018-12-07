@@ -34,7 +34,7 @@ def run_crawl(event, context):
     symbol = event['queryStringParameters']['symbol']
 
     # Get the headlines
-    headlines = collector.collectHeadlinesForSymbol(symbol, pages=10)
+    headlines = collector.collectHeadlinesForSymbol(symbol, pages=50)
 
     # Create dynamo connection
     dynamo = createDynamoInstance(event, config)

@@ -11,22 +11,22 @@ from SpiderConstants import PROXY_PATH, USER_PATH
 # Spider to extract stories from CNBC News
 class MontleyFoolSpider(scrapy.Spider):
 
-    def __init__(self, symbol, name, pages=10):
+    def __init__(self, symbol, pages=10):
 
         self.symbol = symbol
-        self.name = name
+        self.name = symbol
         self.pages = pages
         self.baseUrl = 'https://www.fool.com'
 
-    def set_properties(self, symbol, name):
+    def set_properties(self, symbol):
 
         self.symbol = symbol
-        self.name = name
 
     # Where the scraping requests begin
     def start_requests(self):
-        # URLs to go through for the scraper -- Need to go through a whole bunch of pages to get all necessary data
-        urls = ['{baseUrl}/quote/nyse/{name}/{symbol}/content#article-{pages}'.format(baseUrl=self.baseUrl, pages=self.pages, symbol=self.symbol.lower(), name=self.name.lower())]
+
+        # Assume Url fail so exchange and name of security dont need to be known
+        urls = ['{baseUrl}/quote/failed-lookup/{symbol}'.format(baseUrl=self.baseUrl, symbol=self.symbol.lower())]
 
         # Set up the requests
         for url in urls:
@@ -98,6 +98,6 @@ if __name__ == '__main__':
             'USER_AGENT_LIST': USER_PATH
         }))
 
-    d = runner.crawl(MontleyFoolSpider, symbol='AAPL', name='Apple', pages=50)
+    d = runner.crawl(MontleyFoolSpider, symbol='MSFT', pages=50)
     d.addBoth(lambda _: reactor.stop())  # Callback to stop the reactor
     reactor.run()  # the script will block here until the crawling is finished

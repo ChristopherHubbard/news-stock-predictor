@@ -1,6 +1,8 @@
 from iexfinance import get_historical_data, get_available_symbols
 
 from NASDAQSpider import NASDAQSpider
+from MontleyFoolSpider import MontleyFoolSpider
+from CNBCSpider import CNBCSpider
 from SpiderRunner import SpiderRunner
 
 from datetime import datetime, timedelta
@@ -57,7 +59,7 @@ class StockDataCollector():
     def collectHeadlinesForSymbol(self, symbol, pages=10):
 
         # Collect the headlines for this symbol
-        return self.spiderRunner.run_scrapydoProcess(NASDAQSpider, symbol, pages)
+        return self.spiderRunner.run_scrapydoProcess(MontleyFoolSpider, symbol, pages)
 
     def storeHeadlinesForSymbol(self, symbol, headlines, dynamo):
 
@@ -125,3 +127,8 @@ class StockDataCollector():
                 ':r': headlines
             }
         )
+
+if __name__ == '__main__':
+
+    collector = StockDataCollector()
+    collector.getAllCompanyInfo(fromDB=False, dynamo=None)
