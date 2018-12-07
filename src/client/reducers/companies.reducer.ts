@@ -1,5 +1,5 @@
 import { indexConstants } from '../constants';
-import { CompanyState, IAction } from '../models';
+import { CompanyState, IAction, Company } from '../models';
 
 export function companies(state: CompanyState = { companies: [] }, action: IAction): CompanyState
 {

@@ -11,13 +11,23 @@ export abstract class IndexService
         const requestOptions: any =
         {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+            },
+            params: {
+                env: 'DEV'
+            }
         };
 
         try
         {
-            // Await the response -- send this straight to IEX
-            return await axios.get(`${Config.LOCAL.apiUrl}/companies`, requestOptions);
+            // Await the response -- Gets from Dynamo
+            const response: AxiosResponse = await axios.get(`${Config.DEV.apiUrl}/companies`, requestOptions);
+
+            // Transform the response for the redux actions
+            return response.data.companies;
         }
         catch(error)
         {

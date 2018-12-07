@@ -5,7 +5,7 @@ const config: any = {
         apiUrl: 'http://localhost:9090'
     },
     DEV: {
-        apiUrl: ''
+        apiUrl: 'https://n5kiwn5jok.execute-api.us-east-2.amazonaws.com/dev'
     },
     PROD: {
         apiUrl: ''
